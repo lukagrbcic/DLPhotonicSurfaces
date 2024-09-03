@@ -32,7 +32,7 @@ X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shu
 
 sc = MinMaxScaler(clip=True)
 X_train_ = sc.fit_transform(X_train_) 
-joblib.dump(sc, 'scaler.pkl')
+joblib.dump(sc, 'forwardModel/scaler.pkl')
 
 X_val_ = sc.transform(X_val_)
 
@@ -63,9 +63,6 @@ input_size = np.shape(X_)[1]
 output_size = np.shape(y_)[1]
 
 model = invfow.forwardMLP(input_size, output_size).to(device)
-
-# model = MLP(input_size, output_size).to(device)
-
 
 def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
@@ -122,7 +119,7 @@ for epoch in range(num_epochs):
 
     # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
     
-torch.save(model.state_dict(), 'forward_model.pth')
+torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
 
 # Define RMSE calculation function
 def calculate_rmse(outputs, targets):
