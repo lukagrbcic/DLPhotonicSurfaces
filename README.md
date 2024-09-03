@@ -1,1 +1,1 @@
-Implementation of DL models (cGAN, TNN, PGGAN) for photonic surface inverse design
+Implementation of DL models (cGAN, TNN) for photonic surface inverse design
