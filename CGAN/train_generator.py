@@ -8,6 +8,10 @@ import joblib
 
 import generator_discriminator as gd
 import inverse_forward as invfow
+import warnings
+
+# Ignore all warnings
+warnings.filterwarnings("ignore")
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -86,13 +90,18 @@ class generative_model:
     
     def forward_prediction(self, fake_samples):
         
-         
-        fake_samples_np = fake_samples.detach().cpu().numpy()
+        forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
+        forward.load_state_dict(torch.load(self.forward_model[0]))
+        forward.eval()
         
-        forward_model = self.forward_model[0]
+        
+        fake_samples_np = fake_samples.detach().cpu().numpy()
+                
         pca_model = self.forward_model[1]
         
-        fwd_emissivity = pca_model.inverse_transform(forward_model.predict(fake_samples_np))
+        pca_fake_samples = pca_model.transform(fake_samples_np)
+                
+        fwd_emissivity = forward(torch.tensor(pca_fake_samples, dtype=torch.float32))
         
         fwd_emissivity_tensor = torch.tensor(fwd_emissivity, dtype=torch.float32).to(self.device)
         
@@ -105,41 +114,61 @@ class generative_model:
         print ('TRAINING MODE')
         print ('Using:', self.device)
         
-        print (len(self.train_data[0]))
+        def criterion(outputs, targets):
+            return torch.sqrt(torch.mean((outputs - targets) ** 2))
+        
 
         
         noise_dim = self.noise_dim
         
         dataloader = self.get_torch_dataloader(self.train_data)
 
-
-
         generator = self.generator#gd.Generator(noise_dim).to(device)
         discriminator = self.discriminator#gd.Discriminator().to(device)
+   
+        # ml_model = joblib.load(f'inconel_model/inconel_model.pkl')
+        # pca_model = joblib.load(f'inconel_model/inconel_pca.pkl')
+        # forward_model = (ml_model, pca_model)
+   
+    
+        forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
+        forward.load_state_dict(torch.load(self.forward_model[0]))
+        forward.eval()
+        scaler = self.forward_model[1]
 
-        # g_optimizer = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-        # d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+
+
+
+
         g_optimizer = optim.Adam(generator.parameters(), lr=0.0001)
         d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0001)
         criterion = nn.BCELoss()
 
         num_epochs = self.epochs
         g_loss_plot, d_loss_plot, rmse_loss_plot = [], [], []
-
+        
+        rmse_loss = []
+               
+                
         for epoch in range(num_epochs):
+            epoch_rmse_loss = 0.0  # Initialize epoch RMSE loss
+            num_batches = 0
             for conditions, real_samples in dataloader:
-                # Train Discriminator
-                # Reset gradients
+                num_batches += 1  # Increment batch counter
                 d_optimizer.zero_grad()
                 noise = torch.randn(conditions.shape[0], noise_dim, device=self.device)
                 fake_samples = generator(noise, conditions)
-
-
-                if self.rmse_loss == True:
-                   rmse_loss = self.rmse(self.forward_prediction(fake_samples), conditions)
                 
                 
-                # Discriminator loss on real and fake data
+                """RMSE forward DNN monitor"""
+                fake_samples_np = fake_samples.detach().cpu().numpy()
+                lp_scaled = scaler.transform(fake_samples_np)
+                emissivity_predicted = forward(torch.Tensor(lp_scaled))                
+                epoch_rmse_loss += self.rmse(emissivity_predicted.to(self.device), conditions).item()
+                
+                # print (self.rmse(fwd_emissivity_tensor, conditions))
+
+                
                 real_labels = torch.ones(real_samples.size(0), 1, device=self.device)
                 fake_labels = torch.zeros(real_samples.size(0), 1, device=self.device)
                 real_loss = criterion(discriminator(conditions, real_samples), real_labels)
@@ -168,21 +197,17 @@ class generative_model:
                 g_loss_plot.append(gen_loss.item())
                 d_loss_plot.append(d_loss.item())
                 
-            if self.rmse_loss == True:    
-                rmse_loss_plot.append(rmse_loss.item())
-            
-            if self.verbose == True:
-                if self.rmse_loss == True:    
-                    print ('RMSE/batch:', rmse_loss.item())
-                    
-                print(f'Epoch {epoch+1}/{num_epochs}, D Loss: {d_loss.item():.4f}, G Loss: {gen_loss.item():.4f}')
+
+            avg_rmse_loss = epoch_rmse_loss / num_batches
+            print ('Epoch:', epoch, 'RMSE:', avg_rmse_loss)
+            rmse_loss_plot.append(avg_rmse_loss)
         
         torch.save(generator.state_dict(), f'generatorModel/generator.pth')
         
         plt.figure(figsize=(6, 5))
         plt.plot(np.array(g_loss_plot), label='Generator Loss')
         plt.plot(np.array(d_loss_plot), label='Discriminator Loss')
-        plt.xlabel('Epoch')
+        plt.xlabel('Iteration')
         plt.ylabel('Loss')
         plt.legend()
         ax = plt.gca()
@@ -192,7 +217,18 @@ class generative_model:
             
         plt.savefig('g_d_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
    
-    
+        plt.figure(figsize=(6, 5))
+        plt.plot(np.array(rmse_loss_plot)*100, label='Forward model loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('RMSE Loss (\%)')
+        plt.ylim(0, 20)
+        plt.legend()
+        ax = plt.gca()
+               
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax.spines[axis].set_linewidth(2)
+            
+        plt.savefig('TNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
     def test(self):
         
         
@@ -206,10 +242,10 @@ class generative_model:
         generator.load_state_dict(torch.load(f'generatorModel/generator.pth'))
         generator.eval()
         
-        
         forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
         forward.load_state_dict(torch.load(self.forward_model[0]))
         forward.eval()
+
         
         noise_dim = self.noise_dim
         dataloader = self.get_torch_dataloader(self.test_data, inference=True)
@@ -225,9 +261,7 @@ class generative_model:
                 predictions = generator(noise_vector, inputs)
                 
                 lp_check = predictions.detach().cpu().numpy()[0]
-                
-                print (lp_check)
-                
+                                
                 lb = np.array([0.2, 10, 15])
                 ub = np.array([1.3, 700, 28])
                 
