@@ -166,3 +166,5 @@ ax = plt.gca()
        
 for axis in ['top', 'bottom', 'left', 'right']:
     ax.spines[axis].set_linewidth(2)
+
+plt.savefig('forwardDNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
