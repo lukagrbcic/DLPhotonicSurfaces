@@ -13,8 +13,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 ml_model = f'../TNN/forwardModel/forward_model.pth'
-pca_model = joblib.load(f'../TNN/forwardModel/scaler.pkl')
-forward_model = (ml_model, pca_model)
+scaler = joblib.load(f'../TNN/forwardModel/scaler.pkl')
+forward_model = (ml_model, scaler)
 
 
 y_train = np.load('../inconel_data/input_train_data.npy')
@@ -33,7 +33,7 @@ noise_dim = 50
 
 generator = gd.Generator(noise_dim).to(device)
 discriminator = gd.Discriminator().to(device)
-epochs = 1000
+epochs = 500
 verbose = True
 
 generate = tg.generative_model(train_data, 
