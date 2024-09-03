@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
-ml_model = joblib.load(f'../TNN/forwardModel/forward_model.pth')
+ml_model = f'../TNN/forwardModel/forward_model.pth'
 pca_model = joblib.load(f'../TNN/forwardModel/scaler.pkl')
 forward_model = (ml_model, pca_model)
 
@@ -27,24 +27,27 @@ X_test = np.load('../inconel_data/output_test_data.npy')
 train_data = (X_train, y_train)
 test_data = (X_test, y_test)
 
+
+
 noise_dim = 50
-generator = gd.Generator(noise_dim, np.shape(X_train)[1], np.shape(y_train)[1]).to(device)
-discriminator = gd.Discriminator(np.shape(X_train)[1], np.shape(y_train)[1]).to(device)
-epochs = 500
+
+generator = gd.Generator(noise_dim).to(device)
+discriminator = gd.Discriminator().to(device)
+epochs = 1000
 verbose = True
 
 generate = tg.generative_model(train_data, 
                             test_data, 
                             generator, 
                             discriminator, 
-                            epochs, device, 
+                            epochs, device, noise_dim=noise_dim,
                             forward_model=forward_model, 
                             verbose=verbose)   
 
 alpha=0
 generate.train(alpha=alpha)       
-
-mean_rmse, max_rmse, std_rmse, rmse_values = generate.test(len(X_train))
+emissivity_predictions, laser_params_predictions, rmse_loss = generate.test()
+generate.post_process(emissivity_predictions, laser_params_predictions, rmse_loss)
 
 
 
