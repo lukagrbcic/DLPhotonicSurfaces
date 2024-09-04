@@ -128,11 +128,11 @@ class generative_model:
         # generator = self.generator
 
         
-        #model_path = './generatorModel/generator.pth'
-        #if os.path.exists(model_path):
-        #    generator = gd.Generator(self.noise_dim).to(self.device)
-        #    generator.load_state_dict(torch.load(model_path))
-        #else:
+        # model_path = './generatorModel/generator.pth'
+        # if os.path.exists(model_path):
+        #     generator = gd.Generator(self.noise_dim).to(self.device)
+        #     generator.load_state_dict(torch.load(model_path))
+        # else:
         generator = self.generator
 
 
@@ -237,7 +237,7 @@ class generative_model:
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
         
         generator = self.generator
-        generator.load_state_dict(torch.load(f'generatorModel/generator.pth'))
+        generator.load_state_dict(torch.load(f'generatorModel/generator1500.pth'))
         generator.eval()
         
         forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
