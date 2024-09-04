@@ -22,7 +22,7 @@ plt.rcParams.update({
 class generative_model:
     
     def __init__(self, train_data, test_data,
-                 generator, discriminator, epochs, device, noise_dim, batch_size = 32,
+                 generator, discriminator, epochs, device, noise_dim, batch_size = 16,
                  forward_model=None, verbose=True, rmse_loss=False):
         
         self.train_data = train_data #tuple (inputs, outputs)
@@ -128,19 +128,16 @@ class generative_model:
         # generator = self.generator
 
         
-        # model_path = './generatorModel/generator.pth'
-        # if os.path.exists(model_path):
-        #     generator = gd.Generator(self.noise_dim).to(self.device)
-        #     generator.load_state_dict(torch.load(model_path))
-        # else:
+        #model_path = './generatorModel/generator.pth'
+        #if os.path.exists(model_path):
+        #    generator = gd.Generator(self.noise_dim).to(self.device)
+        #    generator.load_state_dict(torch.load(model_path))
+        #else:
         generator = self.generator
 
 
-        discriminator = self.discriminator#gd.Discriminator().to(device)
-   
-        # ml_model = joblib.load(f'inconel_model/inconel_model.pkl')
-        # pca_model = joblib.load(f'inconel_model/inconel_pca.pkl')
-        # forward_model = (ml_model, pca_model)
+        discriminator = self.discriminator
+
    
     
         forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
@@ -175,8 +172,9 @@ class generative_model:
                 """RMSE forward DNN monitor"""
                 fake_samples_np = fake_samples.detach().cpu().numpy()
                 lp_scaled = scaler.transform(fake_samples_np)
-                emissivity_predicted = forward(torch.Tensor(lp_scaled))                
-                epoch_rmse_loss += self.rmse(emissivity_predicted.to(self.device), conditions).item()
+                emissivity_predicted = forward(torch.Tensor(lp_scaled))        
+                rmse_loss = self.rmse(emissivity_predicted.to(self.device), conditions)#.item()
+                epoch_rmse_loss += rmse_loss.item()
                 
                 
                 real_labels = torch.ones(real_samples.size(0), 1, device=self.device)
@@ -189,18 +187,8 @@ class generative_model:
 
 
                 g_optimizer.zero_grad()
-                
-                # Generator loss
-                
-                if self.rmse_loss == True:
-                    gen_loss = criterion(discriminator(conditions, fake_samples), real_labels) + alpha*rmse_loss.item()
-                
-                else:
-                    gen_loss = criterion(discriminator(conditions, fake_samples), real_labels)
-
-                
-
-                
+                gen_loss = criterion(discriminator(conditions, fake_samples), real_labels) #+ rmse_loss
+     
                 gen_loss.backward()
                 g_optimizer.step()
 
