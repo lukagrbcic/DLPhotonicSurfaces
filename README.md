@@ -27,3 +27,14 @@ _______
 _______
 
 Conditional Generative Adversarial Networks  (cGAN) implementation can be found in the CGAN folder. 
+
+To reproduce the training, testing and the postprocessing of the CGAN model, it is neccessary to run **inconel_gan.py** script.
+
+The Generator training is given in the script **train_generator.py**.
+
+The Generator and Discrimnator architecutre details are given in the **generator_discriminator.py** file.
+
+
+
+
+
