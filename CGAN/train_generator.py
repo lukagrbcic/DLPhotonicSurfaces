@@ -9,9 +9,8 @@ import joblib
 import generator_discriminator as gd
 import inverse_forward as invfow
 import warnings
+import os
 
-# Ignore all warnings
-warnings.filterwarnings("ignore")
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -123,7 +122,20 @@ class generative_model:
         
         dataloader = self.get_torch_dataloader(self.train_data)
 
-        generator = self.generator#gd.Generator(noise_dim).to(device)
+        
+
+        
+        # generator = self.generator
+
+        
+        # model_path = './generatorModel/generator.pth'
+        # if os.path.exists(model_path):
+        #     generator = gd.Generator(self.noise_dim).to(self.device)
+        #     generator.load_state_dict(torch.load(model_path))
+        # else:
+        generator = self.generator
+
+
         discriminator = self.discriminator#gd.Discriminator().to(device)
    
         # ml_model = joblib.load(f'inconel_model/inconel_model.pkl')
@@ -166,8 +178,6 @@ class generative_model:
                 emissivity_predicted = forward(torch.Tensor(lp_scaled))                
                 epoch_rmse_loss += self.rmse(emissivity_predicted.to(self.device), conditions).item()
                 
-                # print (self.rmse(fwd_emissivity_tensor, conditions))
-
                 
                 real_labels = torch.ones(real_samples.size(0), 1, device=self.device)
                 fake_labels = torch.zeros(real_samples.size(0), 1, device=self.device)
