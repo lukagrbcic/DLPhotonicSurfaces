@@ -33,7 +33,7 @@ noise_dim = 50
 
 generator = gd.Generator(noise_dim).to(device)
 discriminator = gd.Discriminator().to(device)
-epochs = 500
+epochs = 3000
 verbose = True
 
 generate = tg.generative_model(train_data, 
