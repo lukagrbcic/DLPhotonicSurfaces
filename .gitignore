@@ -11,3 +11,12 @@
 /inconel_data/input_train_data.npy
 /inconel_data/output_test_data.npy
 /inconel_data/output_train_data.npy
+/CGAN/training_cycle1/TNN_loss.pdf
+/CGAN/training_cycle1/g_d_loss.pdf
+/CGAN/training_cycle1/rmse_vs_nepd_cGAN_inconel.pdf
+/CGAN/training_cycle2/TNN_loss.pdf
+/CGAN/training_cycle2/g_d_loss.pdf
+/CGAN/training_cycle2/rmse_vs_nepd_cGAN_inconel.pdf
+/CGAN/training_cycle3/TNN_loss.pdf
+/CGAN/training_cycle3/g_d_loss.pdf
+/CGAN/training_cycle3/rmse_vs_nepd_cGAN_inconel.pdf
