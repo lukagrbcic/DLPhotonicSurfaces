@@ -115,18 +115,10 @@ class generative_model:
         
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
-        
 
-        
         noise_dim = self.noise_dim
         
         dataloader = self.get_torch_dataloader(self.train_data)
-
-        
-
-        
-        # generator = self.generator
-
         
         model_path = './generatorModel/generator.pth'
         if os.path.exists(model_path):
@@ -147,7 +139,6 @@ class generative_model:
 
         g_optimizer = optim.Adam(generator.parameters(), lr=0.0001)
         d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0001)
-        # d_optimizer = optim.SGD(discriminator.parameters(), lr=0.0001)
         criterion = nn.BCELoss()
 
         num_epochs = self.epochs
@@ -164,7 +155,6 @@ class generative_model:
                 d_optimizer.zero_grad()
                 noise = torch.randn(conditions.shape[0], noise_dim, device=self.device)
                 fake_samples = generator(noise, conditions)
-                # print (fake_samples)
                 
                 """RMSE forward DNN monitor"""
                 fake_samples_np = fake_samples.detach().cpu().numpy()
@@ -182,11 +172,9 @@ class generative_model:
                 d_loss.backward()
                 d_optimizer.step()
                 
-                # torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
-
 
                 g_optimizer.zero_grad()
-                gen_loss = criterion(discriminator(conditions, fake_samples), real_labels) #+ rmse_loss
+                gen_loss = criterion(discriminator(conditions, fake_samples), real_labels) 
      
                 gen_loss.backward()
                 g_optimizer.step()
@@ -257,16 +245,6 @@ class generative_model:
                 noise_vector = torch.randn(1, noise_dim, device=self.device)
                 predictions = generator(noise_vector, inputs)
                 
-                # lp_check = predictions.detach().cpu().numpy()[0]
-                                
-                # lb = np.array([0.2, 10, 15])
-                # ub = np.array([1.3, 700, 28])
-                
-                # while lp_check[0] > ub[0] and lp_check[0] < lb[0] and lp_check[1] > ub[1] and lp_check[1] < lb[1] and lp_check[2] > ub[2] and lp_check[2] < lb[2]:
-                #     predictions = generator(noise_vector, inputs)
-                #     lp_check = predictions.detach().cpu().numpy()
-
-
     
                 pca_laser_params = self.forward_model[1].transform(predictions.detach().cpu().numpy())
                 pca_laser_tensor = torch.tensor(pca_laser_params, dtype=torch.float32)#.to(self.device)
