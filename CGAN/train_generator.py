@@ -128,12 +128,12 @@ class generative_model:
         # generator = self.generator
 
         
-        # model_path = './generatorModel/generator.pth'
-        # if os.path.exists(model_path):
-        #     generator = gd.Generator(self.noise_dim).to(self.device)
-        #     generator.load_state_dict(torch.load(model_path))
-        # else:
-        generator = self.generator
+        model_path = './generatorModel/generator.pth'
+        if os.path.exists(model_path):
+            generator = gd.Generator(self.noise_dim).to(self.device)
+            generator.load_state_dict(torch.load(model_path))
+        else:
+            generator = self.generator
 
 
         discriminator = self.discriminator
@@ -145,12 +145,9 @@ class generative_model:
         forward.eval()
         scaler = self.forward_model[1]
 
-
-
-
-
         g_optimizer = optim.Adam(generator.parameters(), lr=0.0001)
         d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0001)
+        # d_optimizer = optim.SGD(discriminator.parameters(), lr=0.0001)
         criterion = nn.BCELoss()
 
         num_epochs = self.epochs
@@ -167,7 +164,7 @@ class generative_model:
                 d_optimizer.zero_grad()
                 noise = torch.randn(conditions.shape[0], noise_dim, device=self.device)
                 fake_samples = generator(noise, conditions)
-                
+                # print (fake_samples)
                 
                 """RMSE forward DNN monitor"""
                 fake_samples_np = fake_samples.detach().cpu().numpy()
@@ -184,6 +181,8 @@ class generative_model:
                 d_loss = (real_loss + fake_loss) / 2
                 d_loss.backward()
                 d_optimizer.step()
+                
+                # torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
 
 
                 g_optimizer.zero_grad()
@@ -237,7 +236,7 @@ class generative_model:
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
         
         generator = self.generator
-        generator.load_state_dict(torch.load(f'generatorModel/generator1500.pth'))
+        generator.load_state_dict(torch.load(f'generatorModel/generator.pth'))
         generator.eval()
         
         forward = invfow.forwardMLP(np.shape(self.test_data[1])[1], np.shape(self.test_data[0])[1])
@@ -258,14 +257,14 @@ class generative_model:
                 noise_vector = torch.randn(1, noise_dim, device=self.device)
                 predictions = generator(noise_vector, inputs)
                 
-                lp_check = predictions.detach().cpu().numpy()[0]
+                # lp_check = predictions.detach().cpu().numpy()[0]
                                 
-                lb = np.array([0.2, 10, 15])
-                ub = np.array([1.3, 700, 28])
+                # lb = np.array([0.2, 10, 15])
+                # ub = np.array([1.3, 700, 28])
                 
-                while lp_check[0] > ub[0] and lp_check[0] < lb[0] and lp_check[1] > ub[1] and lp_check[1] < lb[1] and lp_check[2] > ub[2] and lp_check[2] < lb[2]:
-                    predictions = generator(noise_vector, inputs)
-                    lp_check = predictions.detach().cpu().numpy()
+                # while lp_check[0] > ub[0] and lp_check[0] < lb[0] and lp_check[1] > ub[1] and lp_check[1] < lb[1] and lp_check[2] > ub[2] and lp_check[2] < lb[2]:
+                #     predictions = generator(noise_vector, inputs)
+                #     lp_check = predictions.detach().cpu().numpy()
 
 
     
@@ -309,7 +308,7 @@ class generative_model:
         rmse = np.array(rmse_loss)*100
        
         plt.figure(figsize=(6,5))
-        plt.scatter(np.array(nepd), rmse, color='lightblue', marker='o', alpha=0.9)
+        plt.scatter(np.array(nepd), rmse, color='lightgreen', marker='o', alpha=0.9)
        
        
         max_nepd = np.max(nepd)
@@ -332,14 +331,14 @@ class generative_model:
         plt.ylim(0, 10)
         plt.xlim(0, 1)
         
-        plt.text(max_nepd, plt.ylim()[1]*0.35, f'Max NEPD {max_nepd:.2f} \%', horizontalalignment='right', rotation=90)
-        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.35, f'Avg. NEPD {avg_nepd:.2f} \%', horizontalalignment='left', rotation=90)
+        plt.text(max_nepd, plt.ylim()[1]*0.45, f'Max NEPD {max_nepd:.2f} \%', horizontalalignment='right', rotation=90)
+        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.45, f'Avg. NEPD {avg_nepd:.2f} \%', horizontalalignment='left', rotation=90)
        
      
         right_edge = plt.xlim()[1]
-        # padding = (right_edge - plt.xlim()[0]) * 0.01  # 2% padding from the right edge
+        padding = (right_edge - plt.xlim()[0]) * 0.01  # 2% padding from the right edge
         # plt.text(right_edge - padding, max_rmse, f'Max RMSE {max_rmse:.2f} \%', verticalalignment='bottom', horizontalalignment='right')
-        # plt.text(right_edge - padding, avg_rmse-0.1, f'Avg. RMSE {avg_rmse:.2f} \%', verticalalignment='top', horizontalalignment='right')
+        plt.text(right_edge - padding, avg_rmse-0.1, f'Avg. RMSE {avg_rmse:.2f} \%', verticalalignment='top', horizontalalignment='right')
        
        
         plt.xlabel('Design novelty (NEPD)')

@@ -20,6 +20,7 @@ forward_model = (ml_model, scaler)
 y_train = np.load('../inconel_data/input_train_data.npy')
 X_train = np.load('../inconel_data/output_train_data.npy')
 
+
 y_test = np.load('../inconel_data/input_test_data.npy')
 X_test = np.load('../inconel_data/output_test_data.npy')
    
@@ -33,7 +34,7 @@ noise_dim = 50
 
 generator = gd.Generator(noise_dim).to(device)
 discriminator = gd.Discriminator().to(device)
-epochs = 1500
+epochs = 200
 verbose = True
 
 generate = tg.generative_model(train_data, 
