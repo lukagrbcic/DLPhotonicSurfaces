@@ -34,7 +34,7 @@ noise_dim = 50
 
 generator = gd.Generator(noise_dim).to(device)
 discriminator = gd.Discriminator().to(device)
-epochs = 200
+epochs = 800
 verbose = True
 
 generate = tg.generative_model(train_data, 
@@ -46,7 +46,7 @@ generate = tg.generative_model(train_data,
                             verbose=verbose)   
 
 alpha=0
-generate.train(alpha=alpha)       
+# generate.train(alpha=alpha)       
 emissivity_predictions, laser_params_predictions, rmse_loss = generate.test()
 generate.post_process(emissivity_predictions, laser_params_predictions, rmse_loss)
 
