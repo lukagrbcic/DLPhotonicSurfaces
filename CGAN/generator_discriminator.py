@@ -17,22 +17,6 @@ class Generator(nn.Module):
             nn.Sigmoid()
         )
         
-        # self.model = nn.Sequential(
-        #             nn.Linear(self.noise_dim + 822, 256),
-        #             nn.LeakyReLU(0.2),
-        #             nn.Linear(256, 512),
-        #             nn.LeakyReLU(0.2),
-        #             nn.Linear(512, 256),
-        #             nn.LeakyReLU(0.2),
-        #             nn.Linear(256, 128),
-        #             nn.LeakyReLU(0.2),
-        #             nn.Linear(128, 3),
-        #             nn.Sigmoid()
-        #         )
-    
-    # def forward(self, noise, conditions):
-    #     x = torch.cat([noise, conditions], dim=1)
-    #     return self.model(x)
     def forward(self, noise, conditions):
         x = torch.cat([noise, conditions], dim=1)
         raw_output = self.model(x)
