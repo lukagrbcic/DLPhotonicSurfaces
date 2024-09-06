@@ -259,8 +259,8 @@ class tandem_model:
         plt.axhline(max_rmse, color='grey', linestyle='--', linewidth=1)
         plt.axhline(avg_rmse, color='grey', linestyle='--', linewidth=1)
        
-        plt.text(max_nepd, plt.ylim()[1]*0.35, f'Max NEPD {max_nepd:.2f} \%', horizontalalignment='right', rotation=90)
-        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.35, f'Avg. NEPD {avg_nepd:.2f} \%', horizontalalignment='left', rotation=90)
+        plt.text(max_nepd, plt.ylim()[1]*0.35, f'Max NEPD {max_nepd:.2f}', horizontalalignment='right', rotation=90)
+        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.35, f'Avg. NEPD {avg_nepd:.2f}', horizontalalignment='left', rotation=90)
        
      
         right_edge = plt.xlim()[1]
