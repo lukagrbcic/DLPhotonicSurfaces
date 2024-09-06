@@ -41,3 +41,4 @@
 /Loss_figs/TNN_inverseDNN_loss.pdf
 /TNN/forwardModel/forward_modelTNN.pth
 /pca_analysis.py
+/TNN/__pycache__/tnn.cpython-311.pyc
