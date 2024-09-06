@@ -309,8 +309,8 @@ class generative_model:
         plt.ylim(0, 10)
         plt.xlim(0, 1)
         
-        plt.text(max_nepd, plt.ylim()[1]*0.45, f'Max NEPD {max_nepd:.2f} \%', horizontalalignment='right', rotation=90)
-        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.45, f'Avg. NEPD {avg_nepd:.2f} \%', horizontalalignment='left', rotation=90)
+        plt.text(max_nepd, plt.ylim()[1]*0.45, f'Max NEPD {max_nepd:.2f}', horizontalalignment='right', rotation=90)
+        plt.text(avg_nepd+0.02, plt.ylim()[1]*0.45, f'Avg. NEPD {avg_nepd:.2f}', horizontalalignment='left', rotation=90)
        
      
         right_edge = plt.xlim()[1]

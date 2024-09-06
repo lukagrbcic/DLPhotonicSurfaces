@@ -51,7 +51,7 @@ inverse_model = tnn.tandem_model(train_data,
                             verbose=verbose)   
 
 alpha=0
-inverse_model.train(alpha=alpha)       
+# inverse_model.train(alpha=alpha)       
 emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test()
 inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
 
