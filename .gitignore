@@ -42,3 +42,9 @@
 /TNN/forwardModel/forward_modelTNN.pth
 /pca_analysis.py
 /TNN/__pycache__/tnn.cpython-311.pyc
+/Comparison_Figs/rmse_vs_nepd_TNN_inconel.pdf
+/Comparison_Figs/rmse_vs_nepd_cGAN_inconel.pdf
+/TNN/rmse_vs_nepd_TNN_inconel.pdf
+/new_figures.zip
+/pca_figs/pca1_pca2.pdf
+/pca_figs/pca_analysis.pdf
