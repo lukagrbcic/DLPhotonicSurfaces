@@ -22,75 +22,89 @@ torch.backends.cudnn.deterministic = True
 import argparse
 
 
+def main():
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    parser = argparse.ArgumentParser()
 
-parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'dataset_name',
+        type=str,
+        help='enter the name of the dataset to be processed'
+    )
 
-parser.add_argument(
-    'input_data_path',
-    type=str,
-    help='provide input data path'
-)
+    args = parser.parse_args()
 
-parser.add_argument(
-    'output_data_path',
-    type=str,
-    help='provide output data path'
-)
+    if args.dataset_name == 'inconel':
+        train_input_path = '../inconel_data/input_train_data.npy'
+        train_output_path = '../inconel_data/output_train_data.npy'
+        test_input_path = '../inconel_data/input_test_data.npy'
+        test_output_path = '../inconel_data/output_test_data.npy'
 
-args = parser.parse_args()
+    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path)
 
-
-print(f'Using device: {device}')
-X_ = np.load(args.input_data_path)
-y_ = np.load(args.output_data_path)
-
-print('shape of input data: ', X_)
-print('shape of output data: ', y_)
+    model = invfow.forwardMLP(input_size, output_size).to(device)
 
 
 
-X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
+    
+
+def load_data(train_input_path, train_output_path, test_input_path, test_output_path):    
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    print(f'Using device: {device}')
+    X_ = np.load(train_input_path)
+    y_ = np.load(train_output_path)
+
+    print('shape of input train data: ', X_)
+    print('shape of output train data: ', y_)
+
+    X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
 
 
-sc = MinMaxScaler(clip=True)
-X_train_ = sc.fit_transform(X_train_) 
-joblib.dump(sc, 'forwardModel/scaler.pkl')
+    sc = MinMaxScaler(clip=True)
+    X_train_ = sc.fit_transform(X_train_) 
+    joblib.dump(sc, 'forwardModel/scaler.pkl')
 
-X_val_ = sc.transform(X_val_)
+    X_val_ = sc.transform(X_val_)
 
-X_test_ = np.load('../inconel_data/input_test_data.npy')
-y_test_ = np.load('../inconel_data/output_test_data.npy')
+    X_test_ = np.load(test_input_path)
+    y_test_ = np.load(test_output_path)
 
-X_test_ = sc.transform(X_test_)
+    print('shape of input test data: ', X_test_)
+    print('shape of output test data: ', y_test_)
+
+    X_test_ = sc.transform(X_test_)
 
 
-X_train = torch.tensor(X_train_, dtype=torch.float32).to(device)
-y_train = torch.tensor(y_train_, dtype=torch.float32).to(device)
+    X_train = torch.tensor(X_train_, dtype=torch.float32).to(device)
+    y_train = torch.tensor(y_train_, dtype=torch.float32).to(device)
 
-X_val = torch.tensor(X_val_, dtype=torch.float32).to(device)
-y_val = torch.tensor(y_val_, dtype=torch.float32).to(device)
+    X_val = torch.tensor(X_val_, dtype=torch.float32).to(device)
+    y_val = torch.tensor(y_val_, dtype=torch.float32).to(device)
 
-X_test = torch.tensor(X_test_, dtype=torch.float32).to(device)
-y_test = torch.tensor(y_test_, dtype=torch.float32).to(device)
+    X_test = torch.tensor(X_test_, dtype=torch.float32).to(device)
+    y_test = torch.tensor(y_test_, dtype=torch.float32).to(device)
 
-train_dataset = TensorDataset(X_train, y_train)
-val_dataset = TensorDataset(X_val, y_val)
-test_dataset = TensorDataset(X_test, y_test)
+    train_dataset = TensorDataset(X_train, y_train)
+    val_dataset = TensorDataset(X_val, y_val)
+    test_dataset = TensorDataset(X_test, y_test)
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=False)
-val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
-input_size = np.shape(X_)[1]
-output_size = np.shape(y_)[1]
+    input_size = np.shape(X_)[1]
+    output_size = np.shape(y_)[1]
 
-model = invfow.forwardMLP(input_size, output_size).to(device)
+    return train_loader, val_loader, test_loader, input_size, output_size
+
 
 def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
+
+def train(model, config):
 
 optimizer = optim.Adam(model.parameters(), lr=0.0005)
 early_stopping_patience = 5
