@@ -19,13 +19,37 @@ torch.cuda.manual_seed(seed)
 np.random.seed(seed)
 torch.backends.cudnn.deterministic = True
 
+import argparse
+
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    'input_data_path',
+    type=str,
+    help='provide input data path'
+)
+
+parser.add_argument(
+    'output_data_path',
+    type=str,
+    help='provide output data path'
+)
+
+args = parser.parse_args()
+
+
 print(f'Using device: {device}')
-X_ = np.load('../inconel_data/input_train_data.npy')
-y_ = np.load('../inconel_data/output_train_data.npy')
+X_ = np.load(args.input_data_path)
+y_ = np.load(args.output_data_path)
+
+print('shape of input data: ', X_)
+print('shape of output data: ', y_)
+
+
 
 X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
 
