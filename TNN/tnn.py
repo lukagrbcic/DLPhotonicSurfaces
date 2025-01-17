@@ -98,7 +98,9 @@ class tandem_model:
 
     def train(self, alpha=0):
         
-        print ('TRAINING MODE')
+        print('------------------')
+        print('-----TRAINING-----')
+        print('------------------')
         print ('Using:', self.device)
         
         X_train, X_val, y_train, y_val = train_test_split(self.train_data[0], 
@@ -179,23 +181,32 @@ class tandem_model:
             
         torch.save(inverse.state_dict(), 'inverseModel/inverse_model.pth')
 
-        plt.figure(figsize=(6, 5))
-        plt.plot(np.array(train_losses)*100, label='Training Loss')
-        plt.plot(np.array(val_losses)*100, label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('RMSE Loss (\%)')
-        plt.ylim(0, 10)
-        plt.legend()
-        ax = plt.gca()
+        print('------------------')
+        print('TRAINING COMPLETE')
+        print('------------------')
+
+
+        # plt.figure(figsize=(6, 5))
+        # plt.plot(np.array(train_losses)*100, label='Training Loss')
+        # plt.plot(np.array(val_losses)*100, label='Validation Loss')
+        # plt.xlabel('Epoch')
+        # plt.ylabel('RMSE Loss (\%)')
+        # plt.ylim(0, 10)
+        # plt.legend()
+        # ax = plt.gca()
                
-        for axis in ['top', 'bottom', 'left', 'right']:
-            ax.spines[axis].set_linewidth(2)
+        # for axis in ['top', 'bottom', 'left', 'right']:
+        #     ax.spines[axis].set_linewidth(2)
             
-        plt.savefig('TNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
+        # plt.savefig('TNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
 
         
     
     def test(self):
+
+        print('------------------')
+        print('-----INFERENCE----')
+        print('------------------')
         
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
@@ -235,6 +246,11 @@ class tandem_model:
         emissivity_predictions = np.concatenate(predictions)
         laser_params_predictions = np.concatenate(laser_params)
         rmse_loss = [i.item() for i in rmse_loss]
+
+        print('------------------')
+        print('INFERENCE COMPLETE')
+        print('------------------')
+        
         return emissivity_predictions, laser_params_predictions, rmse_loss
         
     def post_process(self, emissivity_predictions, laser_params_predictions, rmse):

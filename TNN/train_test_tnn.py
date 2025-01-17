@@ -25,7 +25,7 @@ def main():
     parser.add_argument(
         '--forward_model_path',
         type=str,
-        default='forwardModel/forwardModel.pth',
+        default='forwardModel/forward_model.pth',
         help='enter the path to the pretrained forward model'
     )
 
@@ -34,12 +34,6 @@ def main():
         type=str,
         default='forwardModel/scaler.pkl',
         help='enter the path to the pretrained forward model scalar'
-    )
-
-    parser.add_argument(
-        'inverse_config_file_path',
-        type=str,
-        help='enter path to config file for inverse model'
     )
 
     args = parser.parse_args()
@@ -56,11 +50,11 @@ def main():
         test_output_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
         test_input_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
 
-    X_train = np.load(train_output_path)
-    y_train = np.load(train_input_path)
+    X_train = np.load(train_input_path)
+    y_train = np.load(train_output_path)
 
-    X_test = np.load(test_output_path)
-    y_test = np.load(test_input_path)
+    X_test = np.load(test_input_path)
+    y_test = np.load(test_output_path)
 
     train_data = (X_train, y_train)
     test_data = (X_test, y_test)
@@ -74,13 +68,13 @@ def main():
     input_size = X_train.shape[1]
     output_size = y_train.shape[1]
 
+    print('Input size: ', input_size)
+    print('Output size: ', output_size)
+
     #load the pretrained forward model (with minmax scaler)
-    forwardDNN = invfow.forwardMLP(input_size, output_size).to(device)
-    forwardDNN.load_state_dict(torch.load(args.model_pth_path))
 
     scaler = joblib.load(args.forward_scalar_path)
-    forward_model = (forwardDNN, scaler)
-
+    forward_model = (args.forward_model_path, scaler)
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
@@ -97,9 +91,12 @@ def main():
                                 verbose=verbose)   
 
     alpha=0
-    # inverse_model.train(alpha=alpha)       
+    inverse_model.train(alpha=alpha)       
     emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test()
-    inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
+    #inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
+
+if __name__ == '__main__':
+    main()
 
 
 
