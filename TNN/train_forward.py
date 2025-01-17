@@ -54,11 +54,11 @@ def main():
     model = invfow.forwardMLP(input_size, output_size).to(device)
 
     config = load_config(args.config_file_path)
-    train(model, config, train_loader, val_loader)
+    train_losses, val_losses = train(model, config, train_loader, val_loader)
+    predictions = inference(model, test_loader)
+    plot_results(train_losses, val_losses)
 
 
-
-    
 
 def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device):    
 
@@ -170,50 +170,58 @@ def train(model, config, train_loader, val_loader):
         
     torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
 
+    return train_losses, val_losses
+
 # Define RMSE calculation function
 def calculate_rmse(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
-# Evaluating the model
-model.eval()
-predictions = []
-rmse_loss = []
-with torch.no_grad():
-    total_loss = 0
-    total_rmse = 0
-    for inputs, targets in test_loader:
-        outputs = model(inputs)
-        predictions.append(outputs.cpu().numpy())
-        loss = criterion(outputs, targets)
-        rmse = calculate_rmse(outputs, targets)
-        # print (rmse)
-        rmse_loss.append(rmse.cpu().numpy())
-        total_loss += loss.item()
-        total_rmse += rmse.item()
-    avg_loss = total_loss / len(test_loader)
-    avg_rmse = total_rmse / len(test_loader)
-    print(f'Average Test Loss: {avg_loss}')
-    print(f'Average Test RMSE: {avg_rmse}')
+def inference(model, test_loader):
 
-print ('Mean RMSE:', np.mean(rmse_loss))
-print ('Std RMSE:', np.std(rmse_loss))
-print ('Min RMSE:', np.min(rmse_loss))
-print ('Max RMSE:', np.max(rmse_loss))
+    # Evaluating the model
+    model.eval()
+    predictions = []
+    rmse_loss = []
+    with torch.no_grad():
+        total_loss = 0
+        total_rmse = 0
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            predictions.append(outputs.cpu().numpy())
+            loss = criterion(outputs, targets)
+            rmse = calculate_rmse(outputs, targets)
+            # print (rmse)
+            rmse_loss.append(rmse.cpu().numpy())
+            total_loss += loss.item()
+            total_rmse += rmse.item()
+        avg_loss = total_loss / len(test_loader)
+        avg_rmse = total_rmse / len(test_loader)
+        print(f'Average Test Loss: {avg_loss}')
+        print(f'Average Test RMSE: {avg_rmse}')
+
+    print ('Mean RMSE:', np.mean(rmse_loss))
+    print ('Std RMSE:', np.std(rmse_loss))
+    print ('Min RMSE:', np.min(rmse_loss))
+    print ('Max RMSE:', np.max(rmse_loss))
 
     
-predictions = np.concatenate(predictions)
-import matplotlib.pyplot as plt
+    predictions = np.concatenate(predictions)
 
-plt.figure(figsize=(6, 5))
-plt.plot(np.array(train_losses)*100, label='Training Loss')
-plt.plot(np.array(val_losses)*100, label='Validation Loss')
-plt.xlabel('Epoch')
-plt.ylabel('RMSE Loss (\%)')
-plt.ylim(0, 10)
-plt.legend()
-ax = plt.gca()
-       
-for axis in ['top', 'bottom', 'left', 'right']:
-    ax.spines[axis].set_linewidth(2)
+    return predictions
 
-plt.savefig('forwardDNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
+def plot_results(train_losses, val_losses):
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(6, 5))
+    plt.plot(np.array(train_losses)*100, label='Training Loss')
+    plt.plot(np.array(val_losses)*100, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('RMSE Loss (\%)')
+    plt.ylim(0, 10)
+    plt.legend()
+    ax = plt.gca()
+        
+    for axis in ['top', 'bottom', 'left', 'right']:
+        ax.spines[axis].set_linewidth(2)
+
+    plt.savefig('forwardDNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
