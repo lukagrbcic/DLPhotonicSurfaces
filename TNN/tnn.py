@@ -6,6 +6,7 @@ import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 import joblib
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -13,40 +14,7 @@ plt.rcParams.update({
     'text.latex.preamble': r'\usepackage{sfmath} \sffamily \usepackage{upgreek}',
     "font.size": 18,
 })
-
-def main():
-
-    import argparse
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        'dataset_name',
-        type=str,
-        help='enter the name of the dataset to be processed'
-    )
-
-    parser.add_argument(
-        'inverse_config_file_path',
-        type=str,
-        help='enter path to config file'
-    )
-
-    args = parser.parse_args()
-
-    if args.dataset_name == 'inconel':
-        train_input_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/inconel_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/inconel_data/output_test_data.npy'
-    elif args.dataset_name == 'stainless_steel':
-        train_input_path = '/home/vpatro/TNN_data/ss_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
-
-    
-
+   
 class tandem_model:
     
     def __init__(self, train_data, test_data,
@@ -166,7 +134,7 @@ class tandem_model:
         for epoch in range(num_epochs):
             inverse.train()
             epoch_train_loss = 0
-            for inputs, targets in train_loader:
+            for inputs, targets in tqdm(train_loader):
                 optimizer.zero_grad()
                 outputs = inverse(inputs)
 

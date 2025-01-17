@@ -44,6 +44,7 @@ def main():
 
     args = parser.parse_args()
 
+    #Since it is inverse training, reverse the data inputs
     if args.dataset_name == 'inconel':
         train_output_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
         train_input_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
@@ -61,6 +62,9 @@ def main():
     X_test = np.load(test_output_path)
     y_test = np.load(test_input_path)
 
+    train_data = (X_train, y_train)
+    test_data = (X_test, y_test)
+
     print('shape of X_train: ', X_train.shape)
     print('shape of y_train: ', y_train.shape)
 
@@ -70,53 +74,32 @@ def main():
     input_size = X_train.shape[1]
     output_size = y_train.shape[1]
 
-    model = invfow.forwardMLP(input_size, output_size).to(device)
-    model.load_state_dict(torch.load(args.model_pth_path))
-
     #load the pretrained forward model (with minmax scaler)
-    forwardDNN = './forwardModel/forward_model.pth'
-    scaler = joblib.load(f'./forwardModel/scaler.pkl')
+    forwardDNN = invfow.forwardMLP(input_size, output_size).to(device)
+    forwardDNN.load_state_dict(torch.load(args.model_pth_path))
+
+    scaler = joblib.load(args.forward_scalar_path)
     forward_model = (forwardDNN, scaler)
 
-    model = invfow.forwardMLP(input_size, output_size).to(device)
-    model.load_state_dict(torch.load(args.forward_model_path))
 
-results_rmse = []
+    forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
+    inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
 
-#Since it is inverse training, reverse the data inputs
-y_train = np.load('../inconel_data/input_train_data.npy')
-X_train = np.load('../inconel_data/output_train_data.npy')
+    epochs = 1000
+    verbose = True
 
-y_test = np.load('../inconel_data/input_test_data.npy')
-X_test = np.load('../inconel_data/output_test_data.npy')
+    inverse_model = tnn.tandem_model(train_data, 
+                                test_data, 
+                                forward_architecture, 
+                                inverse_architecture, 
+                                epochs, device, 
+                                forward_model=forward_model,
+                                verbose=verbose)   
 
-    
-train_data = (X_train, y_train)
-test_data = (X_test, y_test)
-
-
-input_size = np.shape(X_train)[1]
-output_size = np.shape(y_train)[1]
-
-
-forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
-inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
-
-epochs = 1000
-verbose = True
-
-inverse_model = tnn.tandem_model(train_data, 
-                            test_data, 
-                            forward_architecture, 
-                            inverse_architecture, 
-                            epochs, device, 
-                            forward_model=forward_model,
-                            verbose=verbose)   
-
-alpha=0
-# inverse_model.train(alpha=alpha)       
-emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test()
-inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
+    alpha=0
+    # inverse_model.train(alpha=alpha)       
+    emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test()
+    inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
 
 
 
