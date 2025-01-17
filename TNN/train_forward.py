@@ -12,6 +12,7 @@ import joblib
 
 
 import inverse_forward as invfow
+from config import load_config
 
 seed = 23
 torch.manual_seed(seed)
@@ -32,6 +33,12 @@ def main():
         help='enter the name of the dataset to be processed'
     )
 
+    parser.add_argument(
+        'config_file_path',
+        type=str,
+        help='enter path to config file'
+    )
+
     args = parser.parse_args()
 
     if args.dataset_name == 'inconel':
@@ -40,17 +47,20 @@ def main():
         test_input_path = '../inconel_data/input_test_data.npy'
         test_output_path = '../inconel_data/output_test_data.npy'
 
-    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device)
 
     model = invfow.forwardMLP(input_size, output_size).to(device)
+
+    config = load_config(args.config_file_path)
+    train(model, config, train_loader, val_loader)
 
 
 
     
 
-def load_data(train_input_path, train_output_path, test_input_path, test_output_path):    
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device):    
 
     print(f'Using device: {device}')
     X_ = np.load(train_input_path)
@@ -104,60 +114,61 @@ def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
 
-def train(model, config):
+def train(model, config, train_loader, val_loader):
 
-optimizer = optim.Adam(model.parameters(), lr=0.0005)
-early_stopping_patience = 5
-best_loss = float('inf')
-epochs_no_improve = 0
+    learning_rate = config['model_params']['learning_rate']
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    early_stopping_patience = config['model_params']['early_stopping_patience']
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
-train_losses = []
-val_losses = []
+    train_losses = []
+    val_losses = []
 
-num_epochs = 1000
-for epoch in range(num_epochs):
-    model.train()
-    epoch_train_loss = 0
-    for inputs, targets in train_loader:
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
-        epoch_train_loss += loss.item()  
-
-    avg_train_loss = epoch_train_loss / len(train_loader)
-    train_losses.append(avg_train_loss)
-    
-    # Validation loss
-    model.eval()
-    with torch.no_grad():
-        total_val_loss = 0
-        for inputs, targets in val_loader:
+    num_epochs = config['model_params']['n_epochs']
+    for epoch in range(num_epochs):
+        model.train()
+        epoch_train_loss = 0
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
             outputs = model(inputs)
-            loss = criterion(outputs, targets)            
-            total_val_loss += loss.item()  # Accumulate validation loss
-            
-    avg_val_loss = total_val_loss / len(val_loader)  # Calculate average validation loss
-    val_losses.append(avg_val_loss)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            epoch_train_loss += loss.item()  
 
-    print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss}, Validation Loss: {avg_val_loss}')
-    
-    # Early stopping logic
-    if avg_val_loss < best_loss:
-        best_loss = avg_val_loss
-        epochs_no_improve = 0
-        best_model_wts = model.state_dict().copy()
-    else:
-        epochs_no_improve += 1
-    
-    if epochs_no_improve == early_stopping_patience:
-        print(f'Early stopping at epoch {epoch+1}')
-        break
+        avg_train_loss = epoch_train_loss / len(train_loader)
+        train_losses.append(avg_train_loss)
+        
+        # Validation loss
+        model.eval()
+        with torch.no_grad():
+            total_val_loss = 0
+            for inputs, targets in val_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)            
+                total_val_loss += loss.item()  # Accumulate validation loss
+                
+        avg_val_loss = total_val_loss / len(val_loader)  # Calculate average validation loss
+        val_losses.append(avg_val_loss)
 
-    # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
-    
-torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
+        print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss}, Validation Loss: {avg_val_loss}')
+        
+        # Early stopping logic
+        if avg_val_loss < best_loss:
+            best_loss = avg_val_loss
+            epochs_no_improve = 0
+            best_model_wts = model.state_dict().copy()
+        else:
+            epochs_no_improve += 1
+        
+        if epochs_no_improve == early_stopping_patience:
+            print(f'Early stopping at epoch {epoch+1}')
+            break
+
+        # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
+        
+    torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
 
 # Define RMSE calculation function
 def calculate_rmse(outputs, targets):
