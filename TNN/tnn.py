@@ -14,7 +14,38 @@ plt.rcParams.update({
     "font.size": 18,
 })
 
+def main():
 
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        'dataset_name',
+        type=str,
+        help='enter the name of the dataset to be processed'
+    )
+
+    parser.add_argument(
+        'inverse_config_file_path',
+        type=str,
+        help='enter path to config file'
+    )
+
+    args = parser.parse_args()
+
+    if args.dataset_name == 'inconel':
+        train_input_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/inconel_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/inconel_data/output_test_data.npy'
+    elif args.dataset_name == 'stainless_steel':
+        train_input_path = '/home/vpatro/TNN_data/ss_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
+
+    
 
 class tandem_model:
     
@@ -279,7 +310,8 @@ class tandem_model:
         for axis in ['top', 'bottom', 'left', 'right']:
             ax.spines[axis].set_linewidth(2)
         plt.savefig('rmse_vs_nepd_TNN_inconel.pdf', bbox_inches='tight', format='pdf', dpi=500)
-        
+
+    
 
         
 
