@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import StepLR
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import joblib
+from tqdm import tqdm
 
 
 import inverse_forward as invfow
@@ -32,30 +33,60 @@ def main():
         type=str,
         help='enter the name of the dataset to be processed'
     )
-
     parser.add_argument(
         'config_file_path',
         type=str,
         help='enter path to config file'
     )
+    parser.add_argument(
+        '--mode',
+        type=str,
+        default = 'train',
+        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
+    )
+    parser.add_argument(
+        '--model_pth_path',
+        type=str,
+        default='forwardModel/forward_model.pth',
+        help='enter the path to the pth file of the pretrained model to do inference on'
+    )
 
     args = parser.parse_args()
 
     if args.dataset_name == 'inconel':
-        train_input_path = '../inconel_data/input_train_data.npy'
-        train_output_path = '../inconel_data/output_train_data.npy'
-        test_input_path = '../inconel_data/input_test_data.npy'
-        test_output_path = '../inconel_data/output_test_data.npy'
+        train_input_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/inconel_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/inconel_data/output_test_data.npy'
+    elif args.dataset_name == 'stainless_steel':
+        train_input_path = '/home/vpatro/TNN_data/ss_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
+
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device)
 
-    model = invfow.forwardMLP(input_size, output_size).to(device)
+    if args.mode == 'train':
+        print('Performing training followed by inference')
+        print('\n')
+        model = invfow.forwardMLP(input_size, output_size).to(device)
+        print(model)
+        config = load_config(args.config_file_path)
 
-    config = load_config(args.config_file_path)
-    train_losses, val_losses = train(model, config, train_loader, val_loader)
-    predictions = inference(model, test_loader)
+        train_losses, val_losses = train(model, config, train_loader, val_loader)
+    else:
+        print('Loading pretrained model and performing inference')
+        print('\n')
+        model = invfow.forwardMLP(input_size, output_size).to(device)
+        model.load_state_dict(torch.load(args.model_pth_path))
+        config = load_config(args.config_file_path)
+
+    predictions, rmse_losses = inference(model, test_loader)
+    import sys
+    sys.exit(0)
     plot_results(train_losses, val_losses)
 
 
@@ -66,8 +97,8 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     X_ = np.load(train_input_path)
     y_ = np.load(train_output_path)
 
-    print('shape of input train data: ', X_)
-    print('shape of output train data: ', y_)
+    print('shape of input train data: ', X_.shape)
+    print('shape of output train data: ', y_.shape)
 
     X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
 
@@ -81,8 +112,8 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     X_test_ = np.load(test_input_path)
     y_test_ = np.load(test_output_path)
 
-    print('shape of input test data: ', X_test_)
-    print('shape of output test data: ', y_test_)
+    print('shape of input test data: ', X_test_.shape)
+    print('shape of output test data: ', y_test_.shape)
 
     X_test_ = sc.transform(X_test_)
 
@@ -116,6 +147,10 @@ def criterion(outputs, targets):
 
 def train(model, config, train_loader, val_loader):
 
+    print('------------------')
+    print('-----TRAINING-----')
+    print('------------------')
+
     learning_rate = config['model_params']['learning_rate']
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     early_stopping_patience = config['model_params']['early_stopping_patience']
@@ -129,7 +164,7 @@ def train(model, config, train_loader, val_loader):
     for epoch in range(num_epochs):
         model.train()
         epoch_train_loss = 0
-        for inputs, targets in train_loader:
+        for inputs, targets in tqdm(train_loader):
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
@@ -170,6 +205,10 @@ def train(model, config, train_loader, val_loader):
         
     torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
 
+    print('------------------')
+    print('TRAINING COMPLETE')
+    print('------------------')
+
     return train_losses, val_losses
 
 # Define RMSE calculation function
@@ -178,6 +217,10 @@ def calculate_rmse(outputs, targets):
 
 def inference(model, test_loader):
 
+    print('------------------')
+    print('-----INFERENCE----')
+    print('------------------')
+
     # Evaluating the model
     model.eval()
     predictions = []
@@ -185,7 +228,7 @@ def inference(model, test_loader):
     with torch.no_grad():
         total_loss = 0
         total_rmse = 0
-        for inputs, targets in test_loader:
+        for inputs, targets in tqdm(test_loader):
             outputs = model(inputs)
             predictions.append(outputs.cpu().numpy())
             loss = criterion(outputs, targets)
@@ -207,7 +250,11 @@ def inference(model, test_loader):
     
     predictions = np.concatenate(predictions)
 
-    return predictions
+    print('------------------')
+    print('INFERENCE COMPLETE')
+    print('------------------')
+
+    return predictions, rmse_loss
 
 def plot_results(train_losses, val_losses):
     import matplotlib.pyplot as plt
@@ -225,3 +272,7 @@ def plot_results(train_losses, val_losses):
         ax.spines[axis].set_linewidth(2)
 
     plt.savefig('forwardDNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
+
+
+if __name__ == '__main__':
+    main()
