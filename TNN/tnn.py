@@ -246,11 +246,14 @@ class tandem_model:
         emissivity_predictions = np.concatenate(predictions)
         laser_params_predictions = np.concatenate(laser_params)
         rmse_loss = [i.item() for i in rmse_loss]
+        
 
         print('------------------')
         print('INFERENCE COMPLETE')
         print('------------------')
-        
+
+
+
         return emissivity_predictions, laser_params_predictions, rmse_loss
         
     def post_process(self, emissivity_predictions, laser_params_predictions, rmse):

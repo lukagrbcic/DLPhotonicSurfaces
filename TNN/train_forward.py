@@ -63,6 +63,11 @@ def main():
         train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
         test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
         test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
+    elif args.dataset_name == 'airfoil':
+        train_input_path = '/home/vpatro/TNN_data/airfoil_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/airfoil_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_data/output_test_data.npy'
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
