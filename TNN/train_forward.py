@@ -73,6 +73,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device)
+    import sys
+    sys.exit(0)
 
     if args.mode == 'train':
         print('Performing training followed by inference')
@@ -90,8 +92,6 @@ def main():
         config = load_config(args.config_file_path)
 
     predictions, rmse_losses = inference(model, test_loader)
-    import sys
-    sys.exit(0)
     plot_results(train_losses, val_losses)
 
 
