@@ -44,12 +44,6 @@ def main():
         default = 'train',
         help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
     )
-    parser.add_argument(
-        '--model_pth_path',
-        type=str,
-        default='forwardModel/forward_model.pth',
-        help='enter the path to the pth file of the pretrained model to do inference on'
-    )
 
     args = parser.parse_args()
 
@@ -72,9 +66,7 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device)
-    import sys
-    sys.exit(0)
+    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
     if args.mode == 'train':
         print('Performing training followed by inference')
@@ -83,12 +75,13 @@ def main():
         print(model)
         config = load_config(args.config_file_path)
 
-        train_losses, val_losses = train(model, config, train_loader, val_loader)
+        train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
     else:
         print('Loading pretrained model and performing inference')
         print('\n')
         model = invfow.forwardMLP(input_size, output_size).to(device)
-        model.load_state_dict(torch.load(args.model_pth_path))
+        forward_model_path = f'forwardModel/{args.dataset_name}_forward_model.pth'
+        model.load_state_dict(torch.load(forward_model_path))
         config = load_config(args.config_file_path)
 
     predictions, rmse_losses = inference(model, test_loader)
@@ -96,7 +89,7 @@ def main():
 
 
 
-def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device):    
+def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name):    
 
     print(f'Using device: {device}')
     X_ = np.load(train_input_path)
@@ -110,7 +103,7 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
 
     sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
-    joblib.dump(sc, 'forwardModel/scaler.pkl')
+    joblib.dump(sc, f'forwardModel/{dataset_name}_scaler.pkl')
 
     X_val_ = sc.transform(X_val_)
 
@@ -150,7 +143,7 @@ def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
 
-def train(model, config, train_loader, val_loader):
+def train(model, config, train_loader, val_loader, dataset_name):
 
     print('------------------')
     print('-----TRAINING-----')
@@ -165,34 +158,52 @@ def train(model, config, train_loader, val_loader):
     train_losses = []
     val_losses = []
 
+    train_rmse_vals = []
+    val_rmse_vals = []
+
     num_epochs = config['model_params']['n_epochs']
     for epoch in range(num_epochs):
         model.train()
         epoch_train_loss = 0
+        epoch_train_rmse = 0.0
         for inputs, targets in tqdm(train_loader):
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
+            train_rmse = calculate_rmse(outputs, targets)
             loss.backward()
             optimizer.step()
             epoch_train_loss += loss.item()  
+            epoch_train_rmse += train_rmse
+
+
 
         avg_train_loss = epoch_train_loss / len(train_loader)
         train_losses.append(avg_train_loss)
+
+        avg_train_rmse = epoch_train_rmse / len(train_loader)
+        train_rmse_vals.append(avg_train_rmse)
         
         # Validation loss
         model.eval()
         with torch.no_grad():
             total_val_loss = 0
+            total_val_rmse = 0.0
             for inputs, targets in val_loader:
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)            
+                loss = criterion(outputs, targets)       
+                val_rmse = calculate_rmse(outputs, targets)     
                 total_val_loss += loss.item()  # Accumulate validation loss
-                
+                total_val_rmse += val_rmse
+
         avg_val_loss = total_val_loss / len(val_loader)  # Calculate average validation loss
         val_losses.append(avg_val_loss)
 
+        avg_val_rmse = total_val_rmse / len(val_loader)
+        val_rmse_vals.append(avg_val_rmse)
+
         print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss}, Validation Loss: {avg_val_loss}')
+        print(f'Epoch {epoch+1}/{num_epochs}, Training RMSE: {avg_train_rmse}, Validation RMSE: {avg_val_rmse}')
         
         # Early stopping logic
         if avg_val_loss < best_loss:
@@ -208,7 +219,7 @@ def train(model, config, train_loader, val_loader):
 
         # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
         
-    torch.save(model.state_dict(), 'forwardModel/forward_model.pth')
+    torch.save(model.state_dict(), f'forwardModel/{dataset_name}_forward_model.pth')
 
     print('------------------')
     print('TRAINING COMPLETE')

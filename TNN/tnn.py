@@ -246,7 +246,12 @@ class tandem_model:
         emissivity_predictions = np.concatenate(predictions)
         laser_params_predictions = np.concatenate(laser_params)
         rmse_loss = [i.item() for i in rmse_loss]
-        
+
+        print ('Mean RMSE:', np.mean(rmse_loss))
+        print ('Std RMSE:', np.std(rmse_loss))
+        print ('Min RMSE:', np.min(rmse_loss))
+        print ('Max RMSE:', np.max(rmse_loss))
+            
 
         print('------------------')
         print('INFERENCE COMPLETE')
