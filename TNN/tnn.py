@@ -15,7 +15,7 @@ plt.rcParams.update({
     "font.size": 18,
 })
    
-class tandem_model:
+class tandem_model():
     
     def __init__(self, train_data, test_data,
                  forward_architecture, inverse_architecture, epochs, device,
@@ -96,7 +96,7 @@ class tandem_model:
         return fwd_emissivity_tensor
                 
 
-    def train(self, alpha=0):
+    def train(self, dataset_name, alpha=0):
         
         print('------------------')
         print('-----TRAINING-----')
@@ -179,7 +179,7 @@ class tandem_model:
 
 
             
-        torch.save(inverse.state_dict(), 'inverseModel/inverse_model.pth')
+        torch.save(inverse.state_dict(), f'inverseModel/{dataset_name}/inverse_model.pth')
 
         print('------------------')
         print('TRAINING COMPLETE')
@@ -202,7 +202,7 @@ class tandem_model:
 
         
     
-    def test(self):
+    def test(self, dataset_name):
 
         print('------------------')
         print('-----INFERENCE----')
@@ -220,7 +220,7 @@ class tandem_model:
         forward.eval()
         
         inverse = self.inverse_architecture
-        inverse.load_state_dict(torch.load('./inverseModel/inverse_model.pth'))
+        inverse.load_state_dict(torch.load(f'./inverseModel/{dataset_name}/inverse_model.pth'))
         inverse.eval()
         
         test_loader = self.get_torch_dataloader(self.test_data, inference=True)

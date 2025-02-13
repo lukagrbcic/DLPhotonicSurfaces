@@ -23,17 +23,16 @@ def main():
     )
 
     parser.add_argument(
-        '--forward_model_path',
+        '--mode',
         type=str,
-        default='forwardModel/forward_model.pth',
-        help='enter the path to the pretrained forward model'
+        default = 'train',
+        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
     )
 
     parser.add_argument(
-        '--forward_scalar_path',
+        '--inverse_model_pth',
         type=str,
-        default='forwardModel/scaler.pkl',
-        help='enter the path to the pretrained forward model scalar'
+        help='enter the path to the inverse model to do inference on'
     )
 
     args = parser.parse_args()
@@ -54,6 +53,7 @@ def main():
         train_output_path = '/home/vpatro/TNN_data/airfoil_data/output_train_data.npy'
         test_input_path = '/home/vpatro/TNN_data/airfoil_data/input_test_data.npy'
         test_output_path = '/home/vpatro/TNN_data/airfoil_data/output_test_data.npy'
+
 
     X_train = np.load(train_input_path)
     y_train = np.load(train_output_path)
@@ -78,8 +78,10 @@ def main():
 
     #load the pretrained forward model (with minmax scaler)
 
-    scaler = joblib.load(args.forward_scalar_path)
-    forward_model = (args.forward_model_path, scaler)
+    forward_scaler_path = f'forwardModel/{args.dataset_name}_scaler.pkl'
+    scaler = joblib.load(forward_scaler_path)
+    forward_model_path = f'forwardModel/{args.dataset_name}_forward_model.pth'
+    forward_model = (forward_model_path, scaler)
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
@@ -95,10 +97,21 @@ def main():
                                 forward_model=forward_model,
                                 verbose=verbose)   
 
-    alpha=0
-    inverse_model.train(alpha=alpha)       
-    emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test()
+    if args.mode == 'train':
+
+        alpha=0
+        inverse_model.train(args.dataset_name, alpha=alpha)       
+        emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test(args.dataset_name)
+
+    else:
+        # load pre-trained model
+        inverse_model_path = f'inverseModel/{args.dataset_name}/inverse_model.pth'
+        inverse_model.load_state_dict(torch.load(inverse_model_path))
+        inverse_model.train(args.dataset_name, alpha=alpha)       
+        emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test(args.dataset_name)
+
     #inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
+    print('COMPLETE')
 
 if __name__ == '__main__':
     main()
