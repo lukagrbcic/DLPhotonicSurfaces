@@ -89,6 +89,7 @@ def main():
 
     #load the pretrained forward (with minmax scaler) and inverse DNN if they're specified as arguments
 
+    ### if we don't give a forward_DNN_dataset (ie don't want to load a pretrained forward DNN), forward_DNN will be set to None in the tnn
     if args.forward_DNN_dataset != None:
         forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
         scaler = joblib.load(forward_scaler_path)
@@ -97,6 +98,7 @@ def main():
         print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
         forward_DNN = (forward_DNN_path, scaler)
 
+    ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
     if args.inverse_DNN_dataset != None:
         inverse_DNN = f'invserseDNN/{args.inverse_DNN_dataset}_forward_DNN.pth'
         print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
@@ -110,6 +112,7 @@ def main():
                                 inverse_architecture, 
                                 epochs, device, 
                                 forward_model=forward_DNN,
+
                                 verbose=verbose)   
 
     if args.mode == 'train':

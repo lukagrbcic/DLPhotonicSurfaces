@@ -109,13 +109,25 @@ class tandem_model():
         ### load the forward DNN and set it to eval mode so its not experiencing backprop
         ## 
         forward = self.forward_architecture
-        print('self.forward_DNN: ', self.forward_DNN[0])
-        forward.load_state_dict(torch.load(self.forward_DNN[0]))
+
+        if self.forward_DNN is not None:
+            forward.load_state_dict(torch.load(self.forward_DNN[0]))
+            print(f'Loading pretrained forward_DNN')
+        else:
+            print('Initializing forward_DNN from scratch')
         forward.eval()
         
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
-        inverse.load_state_dict(torch.load(self.inverse_DNN_path))
+
+        if self.inverse_DNN_path is not None:
+            inverse.load_state_dict(torch.load(self.inverse_DNN_path))
+            print('Loading pretrained inverse_DNN')
+        else:
+            print('Initializing inverse_DNN from scratch')
+
+        import sys
+        sys.exit(0)
 
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
@@ -184,7 +196,7 @@ class tandem_model():
 
 
             
-        torch.save(inverse.state_dict(), f'inverseModel/{dataset_name}/inverse_model.pth')
+        torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}/inverse_DNN.pth')
 
         print('------------------')
         print('TRAINING COMPLETE')
