@@ -19,11 +19,14 @@ class tandem_model():
     
     def __init__(self, train_data, test_data,
                  forward_architecture, inverse_architecture, epochs, device,
+                 dataset_name,
                  batch_size = 64,
                  forward_DNN=None,
                  inverse_DNN_path=None,
+                 configuration='standard',
                  verbose=True, 
-                 rmse_loss=False):
+                 rmse_loss=False,
+                 ):
         
         self.train_data = train_data #tuple (inputs, outputs)
         self.test_data = test_data #tuple (inputs, outputs)
@@ -34,6 +37,8 @@ class tandem_model():
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
         self.inverse_DNN_path = inverse_DNN_path
         self.verbose = verbose
+        self.configuration = configuration
+        self.dataset_name = dataset_name
         self.device = device
         self.rmse_loss = rmse_loss
     
@@ -90,10 +95,12 @@ class tandem_model():
     ### with both a pretrained forward DNN and a pretrained inverse DNN
     def train(self, dataset_name, alpha=0):
         
+        print('')
         print('------------------')
         print('-----TRAINING-----')
         print('------------------')
         print ('Using:', self.device)
+        print('')
         
         X_train, X_val, y_train, y_val = train_test_split(self.train_data[0], 
                                                           self.train_data[1],

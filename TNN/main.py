@@ -18,19 +18,6 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        'dataset_name',
-        type=str,
-        help='enter the name of the dataset'
-    )
-
-    parser.add_argument(
-        '--mode',
-        type=str,
-        default = 'train',
-        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
-    )
-
-    parser.add_argument(
         'configuration',
         type=str,
         default='standard',
@@ -38,7 +25,13 @@ def main():
     )
 
     parser.add_argument(
-        '--forward_DNN_dataset',
+        'dataset_name',
+        type=str,
+        help='enter the name of the dataset'
+    )
+
+    parser.add_argument(
+        'forward_DNN_dataset',
         type=str,
         default=None,
         help='enter the name of the dataset the forward DNN was trained on'
@@ -49,6 +42,13 @@ def main():
         type=str,
         default=None,
         help='enter the name of the dataset the inverse DNN was trained on'
+    )
+
+    parser.add_argument(
+        '--mode',
+        type=str,
+        default = 'train',
+        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
     )
 
     args = parser.parse_args()
@@ -77,20 +77,25 @@ def main():
     X_test = np.load(test_input_path)
     y_test = np.load(test_output_path)
 
+    print('')
     print('--------------------')
     print(f'LOADED {args.dataset_name} DATASET')
     print('--------------------')
+    print('')
 
     train_data = (X_train, y_train)
     test_data = (X_test, y_test)
 
-    print(f'shape of X_train: {X_train.shape}, shape of y_train: {y_train.shape}')
-    print(f'shape of X_train: {X_test.shape}, shape of y_train: {y_test.shape}')
-
     input_size = X_train.shape[1]
     output_size = y_train.shape[1]
 
-    print(f'Input size: {input_size}, Output size: {output_size}')
+    print(f'Input size: {input_size} (emissivity), Output size: {output_size} (laser parameters)')
+    print('')
+
+    print(f'shape of X_train: {X_train.shape}, shape of y_train: {y_train.shape}')
+    print(f'shape of X_train: {X_test.shape}, shape of y_train: {y_test.shape}')
+    print('')
+
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
@@ -98,22 +103,58 @@ def main():
     #load the pretrained forward (with minmax scaler) and inverse DNN if they're specified as arguments
 
     ### if we don't give a forward_DNN_dataset (ie don't want to load a pretrained forward DNN), forward_DNN will be set to None in the tnn
-    if args.forward_DNN_dataset != None:
-        forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
-        scaler = joblib.load(forward_scaler_path)
-        print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
-        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
-        print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
-        forward_DNN = (forward_DNN_path, scaler)
-    else:
-        print('Forward DNN weights will be trained from scratch')
+    
+    forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
+    scaler = joblib.load(forward_scaler_path)
+    print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
+    forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
+    print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
+    forward_DNN = (forward_DNN_path, scaler)
 
-    ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
-    if args.inverse_DNN_dataset != None:
-        inverse_DNN = f'inverseDNN/{args.inverse_DNN_dataset}_inverse_DNN.pth'
-        print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
-    else:
+    # no transfer learning configuration, inverse DNN weights initialized from scratch
+    if args.configuration == 'standard':
         print('')
+        print('--------------------')
+        print('Standard configuration -- no transfer learning')
+        print('--------------------')
+        print('')
+
+        # the dataset we train on and the pretrained dataset of forward DNN should match, and inverse DNN should be trained from scratch
+        assert args.dataset_name == args.forward_DNN_dataset
+        assert args.inverse_DNN_dataset == None
+        inverse_DNN=args.inverse_DNN_dataset
+
+        print('Inverse DNN weights will be initialized from scratch')
+
+    else: # transfer learning configuration
+        ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
+
+        print('')
+        print('--------------------')
+        print('Transfer learning configuration')
+        print('--------------------')
+        print('')
+
+        # make sure that we are actually doing transfer learning
+
+        # configuration 1: dataset and forward DNN dataset are the SAME and inverse DNN dataset is DIFFERENT
+        if args.dataset_name == args.forward_DNN_dataset:
+            assert args.inverse_DNN_dataset != args.forward_DNN_dataset
+
+        # configuration 2: dataset and forward DNN dataset are DIFFERENT and inverse DNN trained from scratch
+        if args.dataset_name != args.forward_DNN_dataset:
+            assert args.inverse_DNN_dataset == None
+
+        # configuration 3: dataset and forward DNN dataset are DIFFERERENT and forward and inverse DNN datasets are the SAME
+        if args.dataset_name != args.forward_DNN_dataset:
+            assert args.forward_DNN_dataset == args.inverse_DNN_dataset
+
+        if args.inverse_DNN_dataset != None:
+            inverse_DNN = f'inverseDNN/{args.inverse_DNN_dataset}_inverse_DNN.pth'
+            print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
+        else:
+            inverse_DNN=args.inverse_DNN_dataset
+            print('Inverse DNN weights will be initialized from scratch')
 
     epochs = 1000
     verbose = True
@@ -123,6 +164,7 @@ def main():
                                 forward_architecture, 
                                 inverse_architecture, 
                                 epochs, device, 
+                                dataset_name=args.dataset_name,
                                 forward_DNN=forward_DNN,
                                 inverse_DNN_path=inverse_DNN,
                                 verbose=verbose)   
