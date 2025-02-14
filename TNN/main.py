@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 sys.path.insert(0, 'src')
 
-import inverse_forward as invfow
+import DLPhotonicSurfaces.TNN.dnn as invfow
 import tnn as tnn
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -30,10 +30,18 @@ def main():
     )
 
     parser.add_argument(
-        '--inverse_model_pth',
+        'forward_DNN_dataset',
         type=str,
-        help='enter the path to the inverse model to do inference on'
+        help='enter the name of the dataset the forward DNN was trained on'
     )
+
+    parser.add_argument(
+        'inverse_DNN_dataset',
+        type=str,
+        help='enter the name of the dataset the inverse DNN was trained on'
+    )
+
+
 
     args = parser.parse_args()
 
@@ -78,18 +86,21 @@ def main():
 
     #load the pretrained forward model (with minmax scaler)
 
-    forward_scaler_path = f'forwardModel/{args.dataset_name}_scaler.pkl'
+    
+    forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
     scaler = joblib.load(forward_scaler_path)
-    forward_model_path = f'forwardModel/{args.dataset_name}_forward_model.pth'
+    forward_model_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pkl'
     forward_model = (forward_model_path, scaler)
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
+
+    inverse_DNN = f'inverseDNN'
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
 
     epochs = 1000
     verbose = True
 
-    inverse_model = tnn.tandem_model(train_data, 
+    tnn_model = tnn.tandem_model(train_data, 
                                 test_data, 
                                 forward_architecture, 
                                 inverse_architecture, 
@@ -100,15 +111,15 @@ def main():
     if args.mode == 'train':
 
         alpha=0
-        inverse_model.train(args.dataset_name, alpha=alpha)       
-        emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test(args.dataset_name)
+        tnn_model.train(args.dataset_name, alpha=alpha)       
+        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test(args.dataset_name)
 
     else:
         # load pre-trained model
         inverse_model_path = f'inverseModel/{args.dataset_name}/inverse_model.pth'
-        inverse_model.load_state_dict(torch.load(inverse_model_path))
-        inverse_model.train(args.dataset_name, alpha=alpha)       
-        emissivity_predictions, laser_parameters_predictions, rmse = inverse_model.test(args.dataset_name)
+        tnn_model.load_state_dict(torch.load(inverse_model_path))
+        tnn_model.train(args.dataset_name, alpha=alpha)       
+        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test(args.dataset_name)
 
     #inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
     print('COMPLETE')

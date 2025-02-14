@@ -114,10 +114,12 @@ class tandem_model():
         val_loader = self.get_torch_dataloader((X_val, y_val))
 
 
+        ### load the forward DNN and set it to eval mode so its not experiencing backprop
         forward = self.forward_architecture
         forward.load_state_dict(torch.load(self.forward_model[0]))
         forward.eval()
         
+        # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
 
         def criterion(outputs, targets):
@@ -138,11 +140,16 @@ class tandem_model():
             epoch_train_loss = 0
             for inputs, targets in tqdm(train_loader):
                 optimizer.zero_grad()
+                # map emissivity curves to laser parameters
                 outputs = inverse(inputs)
 
+                # map the laser parameters back to emissivity curves
                 emissivity_output = forward(outputs)
            
+                # compute loss across the TNN produced emissivities and the inputs to the inverse model, 
+                # which are taken from the training data
                 loss = criterion(emissivity_output, inputs)
+                # this will only change the weights of the inverse DNN
                 loss.backward()
                 optimizer.step()
                 epoch_train_loss += loss.item()  
@@ -150,10 +157,13 @@ class tandem_model():
             avg_train_loss = epoch_train_loss / len(train_loader)
             train_losses.append(avg_train_loss)
             
+            # 
             inverse.eval()
             with torch.no_grad():
                 total_val_loss = 0
                 for inputs, targets in val_loader:
+
+                    # map emissivity -> laser parameters -> emissivity again
                     outputs = inverse(inputs)
                     emissivity_output = forward(outputs)
         
@@ -185,22 +195,6 @@ class tandem_model():
         print('TRAINING COMPLETE')
         print('------------------')
 
-
-        # plt.figure(figsize=(6, 5))
-        # plt.plot(np.array(train_losses)*100, label='Training Loss')
-        # plt.plot(np.array(val_losses)*100, label='Validation Loss')
-        # plt.xlabel('Epoch')
-        # plt.ylabel('RMSE Loss (\%)')
-        # plt.ylim(0, 10)
-        # plt.legend()
-        # ax = plt.gca()
-               
-        # for axis in ['top', 'bottom', 'left', 'right']:
-        #     ax.spines[axis].set_linewidth(2)
-            
-        # plt.savefig('TNN_loss.pdf', bbox_inches='tight', format='pdf', dpi=500)
-
-        
     
     def test(self, dataset_name):
 
@@ -232,7 +226,6 @@ class tandem_model():
         with torch.no_grad():
 
             for inputs, targets in test_loader:
-                
                 
                 outputs = inverse(inputs)
                 laser_params.append(outputs.detach().cpu().numpy())                

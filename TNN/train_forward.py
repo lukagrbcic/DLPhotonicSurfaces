@@ -12,7 +12,7 @@ import joblib
 from tqdm import tqdm
 
 
-import inverse_forward as invfow
+import DLPhotonicSurfaces.TNN.dnn as invfow
 from config import load_config
 
 seed = 23
@@ -103,7 +103,7 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
 
     sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
-    joblib.dump(sc, f'forwardModel/{dataset_name}_scaler.pkl')
+    joblib.dump(sc, f'forwardDNN/{dataset_name}_scaler.pkl')
 
     X_val_ = sc.transform(X_val_)
 
@@ -219,7 +219,7 @@ def train(model, config, train_loader, val_loader, dataset_name):
 
         # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
         
-    torch.save(model.state_dict(), f'forwardModel/{dataset_name}_forward_model.pth')
+    torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_forward_DNN.pth')
 
     print('------------------')
     print('TRAINING COMPLETE')
