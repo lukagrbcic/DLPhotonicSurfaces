@@ -132,6 +132,9 @@ def main():
         print('')
         print('--------------------')
         print('Transfer learning configuration')
+        print(f'dataset: ', args.dataset_name)
+        print(f'forwardDNN dataset: ', args.forward_DNN_dataset)
+        print(f'inverseDNN dataset: ', args.inverse_DNN_dataset)
         print('--------------------')
         print('')
 
@@ -142,12 +145,9 @@ def main():
             assert args.inverse_DNN_dataset != args.forward_DNN_dataset
 
         # configuration 2: dataset and forward DNN dataset are DIFFERENT and inverse DNN trained from scratch
-        if args.dataset_name != args.forward_DNN_dataset:
-            assert args.inverse_DNN_dataset == None
-
         # configuration 3: dataset and forward DNN dataset are DIFFERERENT and forward and inverse DNN datasets are the SAME
         if args.dataset_name != args.forward_DNN_dataset:
-            assert args.forward_DNN_dataset == args.inverse_DNN_dataset
+            assert (args.inverse_DNN_dataset == None) or (args.forward_DNN_dataset == args.inverse_DNN_dataset)
 
         if args.inverse_DNN_dataset != None:
             inverse_DNN = f'inverseDNN/{args.inverse_DNN_dataset}_inverse_DNN.pth'
@@ -169,20 +169,17 @@ def main():
                                 inverse_DNN_dataset=args.inverse_DNN_dataset,
                                 forward_DNN=forward_DNN,
                                 inverse_DNN_path=inverse_DNN,
+                                configuration=args.configuration,
                                 verbose=verbose)   
 
     if args.mode == 'train':
 
         alpha=0
         tnn_model.train(args.dataset_name, alpha=alpha)       
-        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test(args.dataset_name)
+        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
 
-    else:
-        # load pre-trained model
-        inverse_model_path = f'inverseModel/{args.dataset_name}/inverse_model.pth'
-        tnn_model.load_state_dict(torch.load(inverse_model_path))
-        tnn_model.train(args.dataset_name, alpha=alpha)       
-        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test(args.dataset_name)
+    else: 
+        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
 
     #inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
     print('COMPLETE')

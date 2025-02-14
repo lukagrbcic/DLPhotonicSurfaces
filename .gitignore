@@ -48,3 +48,4 @@
 /new_figures.zip
 /pca_figs/pca1_pca2.pdf
 /pca_figs/pca_analysis.pdf
+*.pth

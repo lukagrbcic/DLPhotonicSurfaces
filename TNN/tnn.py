@@ -205,11 +205,13 @@ class tandem_model():
 
         ### saving mechanism
         if self.configuration == 'standard':
-            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}/inverse_DNN.pth')
+            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_DNN.pth')
+            print('Saved model')
         else:
             inv_dataset_descriptor = 'from_scratch' if self.inverse_DNN_path == 'None' else self.inverse_DNN_dataset
             path = f'transfer_learning_models/{self.dataset_name}/inverse_{inv_dataset_descriptor}_forward_{self.forward_DNN_dataset}.pth'
             torch.save(inverse.state_dict(), path)
+            print('Saved model')
 
 
         print('------------------')
@@ -217,25 +219,37 @@ class tandem_model():
         print('------------------')
 
     
-    def test(self, dataset_name):
+    def test(self):
 
+        print('')
         print('------------------')
         print('-----INFERENCE----')
         print('------------------')
+        print('')
         
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
         
         print ('TESTING MODE')
         print ('Using:', self.device)
-        
-        
+        print('')
+
         forward = self.forward_architecture
-        forward.load_state_dict(torch.load(self.forward_DNN[0]))
-        forward.eval()
-        
         inverse = self.inverse_architecture
-        inverse.load_state_dict(torch.load(f'./inverseModel/{dataset_name}_inverse_DNN.pth'))
+
+        forward_path = f'forwardDNN/{self.dataset_name}_forward_DNN.pth'
+        forward.load_state_dict(torch.load(forward_path))
+        print(f'Loaded forward DNN pretrained on {self.forward_DNN_dataset}')
+
+        if self.configuration == 'transfer_learning':
+            print('')
+            print(f'Transfer learning -- loading inverse DNN pretrained on {self.inverse_DNN_dataset} and trained by forward DNN pretrained on {self.forward_DNN_dataset}')
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{self.forward_DNN_dataset}.pth'
+        else: # standard configuration
+            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_DNN.pth'
+            inverse.load_state_dict(torch.load(inverse_path))
+
+        forward.eval()
         inverse.eval()
         
         test_loader = self.get_torch_dataloader(self.test_data, inference=True)
