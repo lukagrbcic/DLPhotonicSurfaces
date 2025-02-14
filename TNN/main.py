@@ -165,6 +165,8 @@ def main():
                                 inverse_architecture, 
                                 epochs, device, 
                                 dataset_name=args.dataset_name,
+                                forward_DNN_dataset=args.forward_DNN_dataset,
+                                inverse_DNN_dataset=args.inverse_DNN_dataset,
                                 forward_DNN=forward_DNN,
                                 inverse_DNN_path=inverse_DNN,
                                 verbose=verbose)   

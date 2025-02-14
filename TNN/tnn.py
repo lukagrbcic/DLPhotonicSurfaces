@@ -20,6 +20,8 @@ class tandem_model():
     def __init__(self, train_data, test_data,
                  forward_architecture, inverse_architecture, epochs, device,
                  dataset_name,
+                 forward_DNN_dataset,
+                 inverse_DNN_dataset,
                  batch_size = 64,
                  forward_DNN=None,
                  inverse_DNN_path=None,
@@ -33,12 +35,14 @@ class tandem_model():
         self.forward_architecture = forward_architecture #forward DNN architecture
         self.inverse_architecture = inverse_architecture #inverse DNN architecutre
         self.epochs = epochs 
+        self.dataset_name = dataset_name
+        self.forward_DNN_dataset = forward_DNN_dataset
+        self.inverse_DNN_dataset = inverse_DNN_dataset
         self.batch_size = batch_size
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
         self.inverse_DNN_path = inverse_DNN_path
         self.verbose = verbose
         self.configuration = configuration
-        self.dataset_name = dataset_name
         self.device = device
         self.rmse_loss = rmse_loss
     
@@ -133,9 +137,6 @@ class tandem_model():
         else:
             print('Initializing inverse_DNN from scratch')
 
-        import sys
-        sys.exit(0)
-
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
@@ -202,8 +203,14 @@ class tandem_model():
                 break
 
 
-            
-        torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}/inverse_DNN.pth')
+        ### saving mechanism
+        if self.configuration == 'standard':
+            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}/inverse_DNN.pth')
+        else:
+            inv_dataset_descriptor = 'from_scratch' if self.inverse_DNN_path == 'None' else self.inverse_DNN_dataset
+            path = f'transfer_learning_models/{self.dataset_name}/inverse_{inv_dataset_descriptor}_forward_{self.forward_DNN_dataset}.pth'
+            torch.save(inverse.state_dict(), path)
+
 
         print('------------------')
         print('TRAINING COMPLETE')
