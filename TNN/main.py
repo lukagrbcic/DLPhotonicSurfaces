@@ -5,6 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 sys.path.insert(0, 'src')
 
+sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 import tnn as tnn
 
@@ -27,6 +28,13 @@ def main():
         type=str,
         default = 'train',
         help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
+    )
+
+    parser.add_argument(
+        'configuration',
+        type=str,
+        default='standard',
+        help='enter whether you are performing the standard TNN configuration or Transfer Learning'
     )
 
     parser.add_argument(
@@ -69,20 +77,20 @@ def main():
     X_test = np.load(test_input_path)
     y_test = np.load(test_output_path)
 
+    print('--------------------')
+    print(f'LOADED {args.dataset_name} DATASET')
+    print('--------------------')
+
     train_data = (X_train, y_train)
     test_data = (X_test, y_test)
 
-    print('shape of X_train: ', X_train.shape)
-    print('shape of y_train: ', y_train.shape)
-
-    print('shape of X_test: ', X_test.shape)
-    print('shape of y_test: ', y_test.shape)
+    print(f'shape of X_train: {X_train.shape}, shape of y_train: {y_train.shape}')
+    print(f'shape of X_train: {X_test.shape}, shape of y_train: {y_test.shape}')
 
     input_size = X_train.shape[1]
     output_size = y_train.shape[1]
 
-    print('Input size: ', input_size)
-    print('Output size: ', output_size)
+    print(f'Input size: {input_size}, Output size: {output_size}')
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
@@ -94,14 +102,18 @@ def main():
         forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
         scaler = joblib.load(forward_scaler_path)
         print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
-        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pkl'
+        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
         print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
         forward_DNN = (forward_DNN_path, scaler)
+    else:
+        print('Forward DNN weights will be trained from scratch')
 
     ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
     if args.inverse_DNN_dataset != None:
-        inverse_DNN = f'invserseDNN/{args.inverse_DNN_dataset}_forward_DNN.pth'
+        inverse_DNN = f'inverseDNN/{args.inverse_DNN_dataset}_inverse_DNN.pth'
         print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
+    else:
+        print('')
 
     epochs = 1000
     verbose = True
@@ -111,8 +123,8 @@ def main():
                                 forward_architecture, 
                                 inverse_architecture, 
                                 epochs, device, 
-                                forward_model=forward_DNN,
-
+                                forward_DNN=forward_DNN,
+                                inverse_DNN_path=inverse_DNN,
                                 verbose=verbose)   
 
     if args.mode == 'train':
