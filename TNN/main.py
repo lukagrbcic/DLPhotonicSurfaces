@@ -30,18 +30,18 @@ def main():
     )
 
     parser.add_argument(
-        'forward_DNN_dataset',
+        '--forward_DNN_dataset',
         type=str,
+        default=None,
         help='enter the name of the dataset the forward DNN was trained on'
     )
 
     parser.add_argument(
-        'inverse_DNN_dataset',
+        '--inverse_DNN_dataset',
         type=str,
+        default=None,
         help='enter the name of the dataset the inverse DNN was trained on'
     )
-
-
 
     args = parser.parse_args()
 
@@ -84,18 +84,22 @@ def main():
     print('Input size: ', input_size)
     print('Output size: ', output_size)
 
-    #load the pretrained forward model (with minmax scaler)
-
-    
-    forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
-    scaler = joblib.load(forward_scaler_path)
-    forward_model_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pkl'
-    forward_model = (forward_model_path, scaler)
-
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
-
-    inverse_DNN = f'inverseDNN'
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
+
+    #load the pretrained forward (with minmax scaler) and inverse DNN if they're specified as arguments
+
+    if args.forward_DNN_dataset != None:
+        forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
+        scaler = joblib.load(forward_scaler_path)
+        print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
+        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pkl'
+        print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
+        forward_DNN = (forward_DNN_path, scaler)
+
+    if args.inverse_DNN_dataset != None:
+        inverse_DNN = f'invserseDNN/{args.inverse_DNN_dataset}_forward_DNN.pth'
+        print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
 
     epochs = 1000
     verbose = True
@@ -105,7 +109,7 @@ def main():
                                 forward_architecture, 
                                 inverse_architecture, 
                                 epochs, device, 
-                                forward_model=forward_model,
+                                forward_model=forward_DNN,
                                 verbose=verbose)   
 
     if args.mode == 'train':

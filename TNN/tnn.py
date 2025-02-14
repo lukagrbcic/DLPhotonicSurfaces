@@ -20,7 +20,8 @@ class tandem_model():
     def __init__(self, train_data, test_data,
                  forward_architecture, inverse_architecture, epochs, device,
                  batch_size = 64,
-                 forward_model=None, 
+                 forward_DNN=None,
+                 inverse_DNN_path=None,
                  verbose=True, 
                  rmse_loss=False):
         
@@ -30,7 +31,8 @@ class tandem_model():
         self.inverse_architecture = inverse_architecture #inverse DNN architecutre
         self.epochs = epochs 
         self.batch_size = batch_size
-        self.forward_model = forward_model #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
+        self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
+        self.inverse_DNN_path = inverse_DNN_path
         self.verbose = verbose
         self.device = device
         self.rmse_loss = rmse_loss
@@ -81,21 +83,11 @@ class tandem_model():
                                       (power_norm_true - power_norm_pred)**2)
             
         return nepd_value
-    
-    def forward_prediction(self, prediction):
-                 
-        prediction_np = prediction.detach().cpu().numpy()
-        
-        forward_model = self.forward_model[0]
-        pca_model = self.forward_model[1]
-        
-        fwd_emissivity = pca_model.inverse_transform(forward_model.predict(prediction_np))
-        
-        fwd_emissivity_tensor = torch.tensor(fwd_emissivity, dtype=torch.float32).to(self.device)
-        
-        return fwd_emissivity_tensor
                 
-
+    ### There are 3 configurations this function can train in: 
+    ### with a pretrained forward DNN and a from-scratch inverse DNN
+    ### with a from-scratch forward DNN and a pretrained inverse DNN
+    ### with both a pretrained forward DNN and a pretrained inverse DNN
     def train(self, dataset_name, alpha=0):
         
         print('------------------')
@@ -115,12 +107,15 @@ class tandem_model():
 
 
         ### load the forward DNN and set it to eval mode so its not experiencing backprop
+        ## 
         forward = self.forward_architecture
-        forward.load_state_dict(torch.load(self.forward_model[0]))
+        print('self.forward_DNN: ', self.forward_DNN[0])
+        forward.load_state_dict(torch.load(self.forward_DNN[0]))
         forward.eval()
         
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
+        inverse.load_state_dict(torch.load(self.inverse_DNN_path))
 
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
@@ -210,15 +205,15 @@ class tandem_model():
         
         
         forward = self.forward_architecture
-        forward.load_state_dict(torch.load(self.forward_model[0]))
+        forward.load_state_dict(torch.load(self.forward_DNN[0]))
         forward.eval()
         
         inverse = self.inverse_architecture
-        inverse.load_state_dict(torch.load(f'./inverseModel/{dataset_name}/inverse_model.pth'))
+        inverse.load_state_dict(torch.load(f'./inverseModel/{dataset_name}_inverse_DNN.pth'))
         inverse.eval()
         
         test_loader = self.get_torch_dataloader(self.test_data, inference=True)
-        pca_model = self.forward_model[1]
+        pca_model = self.forward_DNN[1]
 
         predictions = []
         laser_params = []
@@ -256,7 +251,7 @@ class tandem_model():
         
     def post_process(self, emissivity_predictions, laser_params_predictions, rmse):
         
-        preds = self.forward_model[1].inverse_transform(laser_params_predictions)
+        preds = self.forward_DNN[1].inverse_transform(laser_params_predictions)
         nepd = self.get_nepd(preds, self.test_data[1])
         rmse = np.array(rmse)*100
        
