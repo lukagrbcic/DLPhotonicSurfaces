@@ -10,8 +10,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import joblib
 from tqdm import tqdm
-
-
+import sys
+sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 from config import load_config
 
@@ -80,7 +80,7 @@ def main():
         print('Loading pretrained model and performing inference')
         print('\n')
         model = invfow.forwardMLP(input_size, output_size).to(device)
-        forward_model_path = f'forwardModel/{args.dataset_name}_forward_model.pth'
+        forward_model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
         model.load_state_dict(torch.load(forward_model_path))
         config = load_config(args.config_file_path)
 

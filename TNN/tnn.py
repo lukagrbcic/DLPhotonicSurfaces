@@ -127,9 +127,18 @@ class tandem_model():
         else:
             print('Initializing forward_DNN from scratch')
         forward.eval()
+
+        for param in forward.parameters():
+            param.requires_grad = False
         
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
+
+        for p in inverse.parameters():
+            print(f'name: {p.name}, shape: {p.data.shape}')
+
+        import sys
+        sys.exit()
 
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
@@ -204,13 +213,13 @@ class tandem_model():
 
 
         ### saving mechanism
-        if self.configuration == 'standard':
-            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_DNN.pth')
-            print('Saved model')
-        else:
+        if self.configuration == 'transfer_learning':
             inv_dataset_descriptor = 'from_scratch' if self.inverse_DNN_path == 'None' else self.inverse_DNN_dataset
             path = f'transfer_learning_models/{self.dataset_name}/inverse_{inv_dataset_descriptor}_forward_{self.forward_DNN_dataset}.pth'
             torch.save(inverse.state_dict(), path)
+            print('Saved model')
+        else:
+            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_DNN.pth')
             print('Saved model')
 
 
