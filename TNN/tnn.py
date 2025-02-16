@@ -92,11 +92,23 @@ class tandem_model():
                                       (power_norm_true - power_norm_pred)**2)
             
         return nepd_value
-                
-    ### There are 3 configurations this function can train in: 
-    ### with a pretrained forward DNN and a from-scratch inverse DNN
-    ### with a from-scratch forward DNN and a pretrained inverse DNN
-    ### with both a pretrained forward DNN and a pretrained inverse DNN
+
+    def freeze_layers(self, inverse_DNN, num_layers_to_freeze):
+
+        total_layers = len(inverse_DNN.state_dict())
+
+        count = 0
+        for p in inverse_DNN.parameters():
+            if count >= total_layers - num_layers_to_freeze:
+                p.requires_grad=False
+            count+=1
+
+        for p in inverse_DNN.parameters():
+            print(f'{p.name}, {p}, {p.shape}')
+
+        return inverse_DNN
+
+
     def train(self, dataset_name, alpha=0):
         
         print('')
@@ -134,17 +146,13 @@ class tandem_model():
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
 
-        for p in inverse.parameters():
-            print(f'name: {p.name}, shape: {p.data.shape}')
-
-        import sys
-        sys.exit()
-
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
             print('Loading pretrained inverse_DNN')
         else:
             print('Initializing inverse_DNN from scratch')
+
+        inverse = self.freeze_layers(inverse, num_layers_to_freeze=4)
 
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))
