@@ -95,16 +95,15 @@ class tandem_model():
 
     def freeze_layers(self, inverse_DNN, num_layers_to_freeze):
 
+        print(f'Freezing first {num_layers_to_freeze/2} layers of inverse DNN')
+
         total_layers = len(inverse_DNN.state_dict())
 
         count = 0
         for p in inverse_DNN.parameters():
-            if count >= total_layers - num_layers_to_freeze:
+            if count < num_layers_to_freeze:
                 p.requires_grad=False
             count+=1
-
-        for p in inverse_DNN.parameters():
-            print(f'{p.name}, {p}, {p.shape}')
 
         return inverse_DNN
 
@@ -149,10 +148,9 @@ class tandem_model():
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
             print('Loading pretrained inverse_DNN')
+            inverse = self.freeze_layers(inverse, num_layers_to_freeze=4)
         else:
             print('Initializing inverse_DNN from scratch')
-
-        inverse = self.freeze_layers(inverse, num_layers_to_freeze=4)
 
         def criterion(outputs, targets):
             return torch.sqrt(torch.mean((outputs - targets) ** 2))

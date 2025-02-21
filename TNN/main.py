@@ -3,6 +3,7 @@ import numpy as np
 import joblib
 import torch
 import matplotlib.pyplot as plt
+import time
 sys.path.insert(0, 'src')
 
 sys.path.insert(0, '../..')
@@ -93,7 +94,7 @@ def main():
     print('')
 
     print(f'shape of X_train: {X_train.shape}, shape of y_train: {y_train.shape}')
-    print(f'shape of X_train: {X_test.shape}, shape of y_train: {y_test.shape}')
+    print(f'shape of X_test: {X_test.shape}, shape of y_test: {y_test.shape}')
     print('')
 
 
@@ -126,6 +127,8 @@ def main():
 
         print('Inverse DNN weights will be initialized from scratch')
 
+        time.sleep(2)
+
     else: # transfer learning configuration
         ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
 
@@ -137,6 +140,8 @@ def main():
         print(f'inverseDNN dataset: ', args.inverse_DNN_dataset)
         print('--------------------')
         print('')
+
+        time.sleep(2)
 
         # make sure that we are actually doing transfer learning
 

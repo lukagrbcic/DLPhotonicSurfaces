@@ -24,4 +24,4 @@ python train_forward.py stainless_steel configs/forward/forward.yaml
 
 # python main.py transfer_learning stainless_steel stainless_steel --inverse_DNN_dataset inconel
 # python main.py transfer_learning stainless_steel inconel 
-# pythobn main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel
+# python main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel
