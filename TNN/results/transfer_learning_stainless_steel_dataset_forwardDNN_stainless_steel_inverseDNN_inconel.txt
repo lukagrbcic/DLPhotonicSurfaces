@@ -1,0 +1,3 @@
+train loss: 0.02377 
+val loss: 0.02322 
+test loss: 0.02002 

@@ -22,11 +22,11 @@ class tandem_model():
                  dataset_name,
                  forward_DNN_dataset,
                  inverse_DNN_dataset,
+                 loss_type,
                  batch_size = 64,
                  forward_DNN=None,
                  inverse_DNN_path=None,
                  configuration='standard',
-                 loss_type='standard',
                  verbose=True, 
                  rmse_loss=False,
                  ):
@@ -236,13 +236,6 @@ class tandem_model():
                 print(f'Early stopping at epoch {epoch+1}')
                 break
 
-        final_train_loss = train_losses[-1]
-        final_val_loss = val_losses[-1]
-
-        return final_train_loss, final_val_loss
-
-
-
 
         ### saving mechanism
         if self.configuration == 'transfer_learning':
@@ -259,7 +252,10 @@ class tandem_model():
         print('TRAINING COMPLETE')
         print('------------------')
 
-        return 
+        final_train_loss = train_losses[-1]
+        final_val_loss = val_losses[-1]
+
+        return final_train_loss, final_val_loss
 
     
     def test(self):

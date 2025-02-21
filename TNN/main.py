@@ -165,6 +165,8 @@ def main():
     epochs = 1000
     verbose = True
 
+    loss_type = 'standard'
+
     tnn_model = tnn.tandem_model(train_data, 
                                 test_data, 
                                 forward_architecture, 
@@ -173,6 +175,7 @@ def main():
                                 dataset_name=args.dataset_name,
                                 forward_DNN_dataset=args.forward_DNN_dataset,
                                 inverse_DNN_dataset=args.inverse_DNN_dataset,
+                                loss_type=loss_type,
                                 forward_DNN=forward_DNN,
                                 inverse_DNN_path=inverse_DNN,
                                 configuration=args.configuration,
