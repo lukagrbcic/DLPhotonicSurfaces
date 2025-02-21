@@ -26,6 +26,7 @@ class tandem_model():
                  forward_DNN=None,
                  inverse_DNN_path=None,
                  configuration='standard',
+                 loss_type='standard',
                  verbose=True, 
                  rmse_loss=False,
                  ):
@@ -43,6 +44,7 @@ class tandem_model():
         self.inverse_DNN_path = inverse_DNN_path
         self.verbose = verbose
         self.configuration = configuration
+        self.loss_type = loss_type
         self.device = device
         self.rmse_loss = rmse_loss
     
@@ -152,8 +154,16 @@ class tandem_model():
         else:
             print('Initializing inverse_DNN from scratch')
 
-        def criterion(outputs, targets):
-            return torch.sqrt(torch.mean((outputs - targets) ** 2))
+        def criterion(emissivity_preds, emissivity_targets,
+                    parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard'):
+                if loss == 'standard':
+                    return torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                else:
+                    emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                    laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
+
+                return laser_param_term + lambda_val*emissivity_term
+                    
 
 
         optimizer = optim.Adam(inverse.parameters(), lr=0.0004) #0.0002
@@ -168,17 +178,20 @@ class tandem_model():
         for epoch in range(num_epochs):
             inverse.train()
             epoch_train_loss = 0
-            for inputs, targets in tqdm(train_loader):
+            for emis_inputs, param_targets in tqdm(train_loader):
                 optimizer.zero_grad()
                 # map emissivity curves to laser parameters
-                outputs = inverse(inputs)
+                laser_param_outputs = inverse(emis_inputs)
 
                 # map the laser parameters back to emissivity curves
-                emissivity_output = forward(outputs)
+                emissivity_output = forward(laser_param_outputs)
            
                 # compute loss across the TNN produced emissivities and the inputs to the inverse model, 
                 # which are taken from the training data
-                loss = criterion(emissivity_output, inputs)
+                loss = criterion(emissivity_preds=emissivity_output,
+                                    emissivity_targets=emis_inputs,
+                                    parameter_preds=laser_param_outputs,
+                                    parmeter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
                 # this will only change the weights of the inverse DNN
                 loss.backward()
                 optimizer.step()
@@ -191,13 +204,16 @@ class tandem_model():
             inverse.eval()
             with torch.no_grad():
                 total_val_loss = 0
-                for inputs, targets in val_loader:
+                for emis_inputs, param_targets in val_loader:
 
                     # map emissivity -> laser parameters -> emissivity again
-                    outputs = inverse(inputs)
-                    emissivity_output = forward(outputs)
+                    param_outputs = inverse(emis_inputs)
+                    emissivity_output = forward(param_outputs)
         
-                    loss = criterion(emissivity_output, inputs)       
+                    loss = criterion(emissivity_preds=emissivity_output,
+                                    emissivity_targets=emis_inputs,
+                                    parameter_preds=laser_param_outputs,
+                                    parmeter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)   
         
                     total_val_loss += loss.item()  
                     
