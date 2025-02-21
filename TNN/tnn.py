@@ -174,6 +174,9 @@ class tandem_model():
         train_losses = []
         val_losses = []
 
+        final_train_loss = 0.0
+        final_val_loss = 0.0
+
         num_epochs = self.epochs
         for epoch in range(num_epochs):
             inverse.train()
@@ -191,7 +194,7 @@ class tandem_model():
                 loss = criterion(emissivity_preds=emissivity_output,
                                     emissivity_targets=emis_inputs,
                                     parameter_preds=laser_param_outputs,
-                                    parmeter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
+                                    parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
                 # this will only change the weights of the inverse DNN
                 loss.backward()
                 optimizer.step()
@@ -213,7 +216,7 @@ class tandem_model():
                     loss = criterion(emissivity_preds=emissivity_output,
                                     emissivity_targets=emis_inputs,
                                     parameter_preds=laser_param_outputs,
-                                    parmeter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)   
+                                    parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)   
         
                     total_val_loss += loss.item()  
                     
@@ -233,6 +236,13 @@ class tandem_model():
                 print(f'Early stopping at epoch {epoch+1}')
                 break
 
+        final_train_loss = train_losses[-1]
+        final_val_loss = val_losses[-1]
+
+        return final_train_loss, final_val_loss
+
+
+
 
         ### saving mechanism
         if self.configuration == 'transfer_learning':
@@ -248,6 +258,8 @@ class tandem_model():
         print('------------------')
         print('TRAINING COMPLETE')
         print('------------------')
+
+        return 
 
     
     def test(self):
@@ -318,7 +330,7 @@ class tandem_model():
 
 
 
-        return emissivity_predictions, laser_params_predictions, rmse_loss
+        return emissivity_predictions, laser_params_predictions, rmse_loss, np.mean(rmse_loss)
         
     def post_process(self, emissivity_predictions, laser_params_predictions, rmse):
         

@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 import joblib
 import torch
@@ -179,9 +180,39 @@ def main():
 
     if args.mode == 'train':
 
-        alpha=0
-        tnn_model.train(args.dataset_name, alpha=alpha)       
-        emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
+        train_losses = []
+        val_losses = []
+        test_losses = []
+
+        n_trials = 3
+        for i in range(n_trials):
+
+            alpha=0
+            final_train_loss, final_val_loss = tnn_model.train(args.dataset_name, alpha=alpha)       
+            emissivity_predictions, laser_parameters_predictions, test_rmse_losses, mean_loss = tnn_model.test()
+
+            train_losses.append(final_train_loss)
+            val_losses.append(final_val_loss)
+            test_losses.append(mean_loss)
+
+        result_dir = 'results'
+        os.makedirs(result_dir, exist_ok=True)
+
+        inverse_DNN_dataset = args.inverse_DNN_dataset
+        if args.inverse_DNN_dataset == None:
+            inverse_DNN_dataset = 'from_scratch'
+
+        mean_train_loss = sum(train_losses)/len(train_losses)
+        mean_val_loss = sum(val_losses)/len(val_losses)
+        mean_test_loss = sum(test_losses)/len(test_losses)
+
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.txt'
+
+        file = open(outfile, 'w')
+        file.write(f'train loss: {mean_train_loss:.5f} \n')
+        file.write(f'val loss: {mean_val_loss:.5f} \n')
+        file.write(f'test loss: {mean_test_loss:.5f} \n')
+        file.close()
 
     else: 
         emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
