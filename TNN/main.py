@@ -186,35 +186,48 @@ def main():
         train_losses = []
         val_losses = []
         test_losses = []
+        epochs = []
 
-        n_trials = 3
+        n_trials = 5
         for i in range(n_trials):
 
             alpha=0
-            final_train_loss, final_val_loss = tnn_model.train(args.dataset_name, alpha=alpha)       
+            final_train_loss, final_val_loss, epochs_to_converge = tnn_model.train(args.dataset_name, alpha=alpha)       
             emissivity_predictions, laser_parameters_predictions, test_rmse_losses, mean_loss = tnn_model.test()
 
             train_losses.append(final_train_loss)
             val_losses.append(final_val_loss)
             test_losses.append(mean_loss)
+            epochs.append(epochs_to_converge)
 
-        result_dir = 'results'
+        train_losses = np.array(train_losses)
+        val_losses = np.array(val_losses)
+        test_losses = np.array(test_losses)
+        epochs = np.array(epochs)
+
+        result_dir = f'results/{loss_type}'
         os.makedirs(result_dir, exist_ok=True)
 
         inverse_DNN_dataset = args.inverse_DNN_dataset
         if args.inverse_DNN_dataset == None:
             inverse_DNN_dataset = 'from_scratch'
 
-        mean_train_loss = sum(train_losses)/len(train_losses)
-        mean_val_loss = sum(val_losses)/len(val_losses)
-        mean_test_loss = sum(test_losses)/len(test_losses)
+        mean_train_loss = np.mean(train_losses)
+        mean_val_loss = np.mean(val_losses)
+        mean_test_loss = np.mean(test_losses)
+        mean_epochs = np.mean(epochs)
+
+        stdev_train_loss = np.std(train_losses)
+        stdev_val_loss = np.std(val_losses)
+        stdev_test_loss = np.std(test_losses)
 
         outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.txt'
 
         file = open(outfile, 'w')
-        file.write(f'train loss: {mean_train_loss:.5f} \n')
-        file.write(f'val loss: {mean_val_loss:.5f} \n')
-        file.write(f'test loss: {mean_test_loss:.5f} \n')
+        file.write(f'mean train loss: {mean_train_loss:.5f}, std: {stdev_train_loss} \n')
+        file.write(f'mean val loss: {mean_val_loss:.5f}, std: {stdev_val_loss} \n')
+        file.write(f'test loss: {mean_test_loss:.5f}, std: {stdev_test_loss} \n')
+        file.write(f'epochs to converge: {mean_epochs}')
         file.close()
 
     else: 

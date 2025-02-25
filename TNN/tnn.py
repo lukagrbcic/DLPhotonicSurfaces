@@ -160,6 +160,8 @@ class tandem_model():
                     return torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
                 else:
                     emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                    print('parameter preds shape: ', parameter_preds.shape)
+                    print('parameter targets shape: ', parameter_targets.shape)
                     laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
 
                 return laser_param_term + lambda_val*emissivity_term
@@ -178,6 +180,7 @@ class tandem_model():
         final_val_loss = 0.0
 
         num_epochs = self.epochs
+        epochs_to_converge = 0
         for epoch in range(num_epochs):
             inverse.train()
             epoch_train_loss = 0
@@ -212,6 +215,12 @@ class tandem_model():
                     # map emissivity -> laser parameters -> emissivity again
                     param_outputs = inverse(emis_inputs)
                     emissivity_output = forward(param_outputs)
+
+                    print('emis inputs shape: ', emis_inputs.shape)
+                    print('param targets shape: ', param_targets.shape)
+
+                    print('param outputs shape: ', param_outputs.shape)
+                    print('emis outputs shape: ', emissivity_output.shape)
         
                     loss = criterion(emissivity_preds=emissivity_output,
                                     emissivity_targets=emis_inputs,
@@ -224,7 +233,8 @@ class tandem_model():
                 val_losses.append(avg_val_loss)
             
             print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss}, Validation Loss: {avg_val_loss}')
-            
+            epochs_to_converge = epoch+1
+
             if avg_val_loss < best_loss:
                 best_loss = avg_val_loss
                 epochs_no_improve = 0
@@ -255,7 +265,7 @@ class tandem_model():
         final_train_loss = train_losses[-1]
         final_val_loss = val_losses[-1]
 
-        return final_train_loss, final_val_loss
+        return final_train_loss, final_val_loss, epochs_to_converge
 
     
     def test(self):
@@ -299,15 +309,18 @@ class tandem_model():
         rmse_loss = []
         with torch.no_grad():
 
-            for inputs, targets in test_loader:
+            for emis_inputs, param_targets in test_loader:
                 
-                outputs = inverse(inputs)
-                laser_params.append(outputs.detach().cpu().numpy())                
-                emissivity_output = forward(outputs)
+                param_outputs = inverse(emis_inputs)
+                laser_params.append(param_outputs.detach().cpu().numpy())                
+                emissivity_output = forward(param_outputs)
         
                 predictions.append(emissivity_output.detach().cpu().numpy())
                 
-                rmse = criterion(emissivity_output, inputs)
+                rmse = criterion(emissivity_preds=emissivity_output,
+                                    emissivity_targets=emis_inputs,
+                                    parameter_preds=param_outputs,
+                                    parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
                 rmse_loss.append(rmse.cpu().numpy())
             
         emissivity_predictions = np.concatenate(predictions)
