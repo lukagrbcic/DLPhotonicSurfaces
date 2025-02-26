@@ -12,6 +12,7 @@ import tnn as tnn
 
 import argparse
 import pandas as pd
+import json
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -229,8 +230,18 @@ def main():
         stdev_train_loss = np.std(train_losses)
         stdev_val_loss = np.std(val_losses)
         stdev_test_loss = np.std(test_losses)
+        stdev_epochs = np.std(epochs)
 
         outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.txt'
+
+        obj = {'mean train loss: ', mean_train_loss,
+               'mean val loss: ', mean_val_loss,
+               'test loss: ', mean_test_loss,
+               'train loss std: ', stdev_train_loss,
+               'val loss std: ', stdev_val_loss,
+               'test loss std: ', stdev_test_loss,
+               'epochs: ', mean_epochs,
+               'epochs std: ', stdev_epochs}
 
         file = open(outfile, 'w')
         file.write(f'mean train loss: {mean_train_loss:.5f}, std: {stdev_train_loss:.5f} \n')
