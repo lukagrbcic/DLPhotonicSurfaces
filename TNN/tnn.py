@@ -18,29 +18,33 @@ plt.rcParams.update({
    
 class tandem_model():
     
-    def __init__(self, train_data, test_data,
-                 forward_architecture,
-                 inverse_architecture,
-                 inverse_layers_frozen,
-                 epochs,
-                 device,
-                 dataset_name,
-                 forward_DNN_dataset,
-                 inverse_DNN_dataset,
-                 loss_type,
-                 batch_size = 64,
-                 forward_DNN=None,
-                 inverse_DNN_path=None,
-                 configuration='standard',
-                 verbose=True, 
-                 rmse_loss=False,
-                 ):
+    def __init__(self, 
+                train_data,
+                test_data,
+                train_val_split_seed,
+                forward_architecture,
+                inverse_architecture,
+                num_inverse_layers_frozen,
+                epochs,
+                device,
+                dataset_name,
+                forward_DNN_dataset,
+                inverse_DNN_dataset,
+                loss_type,
+                batch_size = 64,
+                forward_DNN=None,
+                inverse_DNN_path=None,
+                configuration='standard',
+                verbose=True, 
+                rmse_loss=False,
+                ):
         
         self.train_data = train_data #tuple (inputs, outputs)
         self.test_data = test_data #tuple (inputs, outputs)
+        self.train_val_split_seed = train_val_split_seed
         self.forward_architecture = forward_architecture #forward DNN architecture
         self.inverse_architecture = inverse_architecture #inverse DNN architecutre
-        self.num_inverse_layers_frozen = inverse_layers_frozen
+        self.num_inverse_layers_frozen = num_inverse_layers_frozen
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
@@ -68,44 +72,10 @@ class tandem_model():
             dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
         
         return dataloader
-    
-    @staticmethod
-    def rmse(outputs, targets):
-        return torch.sqrt(torch.mean((outputs - targets) ** 2))
-
-
-    @staticmethod 
-    def _normalize(parameters):
-        
-        lspeed_min, spacing_min, power_min = 0.2, 10, 15 
-        lspeed_max, spacing_max, power_max = 1.3, 700, 28
-        
-        lspeed_norm = (parameters[:,0] - lspeed_min)/(lspeed_max - lspeed_min)
-        spacing_norm = (parameters[:, 1] - spacing_min)/(spacing_max - spacing_min)
-        power_norm = (parameters[:, 2] - power_min)/(power_max - power_min)
-            
-        return lspeed_norm, spacing_norm, power_norm
-
-
-    def get_nepd(self, preds, test_data):
-        
-        lspeed_norm_true, spacing_norm_true, power_norm_true = self._normalize(test_data)
-        lspeed_norm_pred, spacing_norm_pred, power_norm_pred = self._normalize(preds)
-    
-        normalized_true = np.hstack((lspeed_norm_true, spacing_norm_true, power_norm_true))
-        normalized_pred = np.hstack((lspeed_norm_pred, spacing_norm_pred, power_norm_pred))
-        
-        nepd_value = (1/np.sqrt(3)) * np.sqrt((lspeed_norm_true - lspeed_norm_pred)**2 +\
-                                      (spacing_norm_true - spacing_norm_pred)**2 +\
-                                      (power_norm_true - power_norm_pred)**2)
-            
-        return nepd_value
 
     def freeze_layers(self, inverse_DNN, num_layers_to_freeze):
 
         print(f'Freezing first {int(num_layers_to_freeze/2)} layers of inverse DNN')
-
-        total_layers = len(inverse_DNN.state_dict())
 
         count = 0
         for p in inverse_DNN.parameters():
@@ -129,7 +99,7 @@ class tandem_model():
                                                           self.train_data[1],
                                                           test_size=0.1, 
                                                           shuffle=False, 
-                                                          random_state=23)
+                                                          random_state=self.train_val_split_seed)
                         
 
         train_loader = self.get_torch_dataloader((X_train, y_train))
@@ -141,10 +111,8 @@ class tandem_model():
         forward = self.forward_architecture
 
         if self.forward_DNN is not None:
-            print('device: ', self.device)
-            print('cuda:', torch.cuda.is_available())
             forward.load_state_dict(torch.load(self.forward_DNN[0]))
-            print(f'Loading pretrained forward_DNN')
+            print(f'Loading pretrained forward_DNN on {self.forward_DNN_dataset}')
         else:
             print('Initializing forward_DNN from scratch')
         forward.eval()
@@ -170,7 +138,7 @@ class tandem_model():
 
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
-            print('Loading pretrained inverse_DNN')
+            print(f'Loading inverse_DNN pretrained on {self.inverse_DNN_dataset}')
             inverse = self.freeze_layers(inverse, num_layers_to_freeze=self.num_inverse_layers_frozen)
         else:
             print('Initializing inverse_DNN from scratch')

@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-def make_results_df(dataset, transfer_dataset, results_dir):
+def make_results_df(dataset, transfer_dataset, results_dir, num_inverse_layers_frozen):
 
     df = pd.DataFrame()
 
@@ -10,9 +10,9 @@ def make_results_df(dataset, transfer_dataset, results_dir):
     df['Inverse DNN'] = ['n/a', 'from scratch', transfer_dataset, 'from scratch', transfer_dataset]
 
     standard_path = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_from_scratch.json'
-    tl_1_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}.json'
+    tl_1_path = f'{results_dir}/{num_inverse_layers_frozen}_layers_frozen/transfer_learning_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}.json'
     tl2_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_from_scratch.json'
-    tl3_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_{transfer_dataset}.json'
+    tl3_path = f'{results_dir}/{num_inverse_layers_frozen}_layers_frozen/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_{transfer_dataset}.json'
 
     if dataset == 'inconel':
         train_losses = [0.03099]

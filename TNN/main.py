@@ -13,6 +13,7 @@ import tnn as tnn
 import argparse
 import pandas as pd
 import json
+import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -152,7 +153,7 @@ def main():
         print(f'dataset: ', args.dataset_name)
         print(f'forwardDNN dataset: ', args.forward_DNN_dataset)
         print(f'inverseDNN dataset: {args.inverse_DNN_dataset}')
-        print(f'{args.num_inverse_layers_frozen} layers of inverse DNN frozen')
+        print(f'{int(args.num_inverse_layers_frozen/2)} layers of inverse DNN frozen')
         print('--------------------')
         print('')
 
@@ -176,28 +177,13 @@ def main():
             inverse_DNN=args.inverse_DNN_dataset
             print('Inverse DNN weights will be initialized from scratch')
 
-    epochs = 1000
+    max_epochs = 1000
     verbose = True
 
     loss_type = 'standard_loss'
 
     print('DEVICE: ', device)
 
-    tnn_model = tnn.tandem_model(train_data, 
-                                test_data, 
-                                forward_architecture, 
-                                inverse_architecture,
-                                args.num_inverse_layers_frozen,
-                                epochs, 
-                                device, 
-                                dataset_name=args.dataset_name,
-                                forward_DNN_dataset=args.forward_DNN_dataset,
-                                inverse_DNN_dataset=args.inverse_DNN_dataset,
-                                loss_type=loss_type,
-                                forward_DNN=forward_DNN,
-                                inverse_DNN_path=inverse_DNN,
-                                configuration=args.configuration,
-                                verbose=verbose)   
 
     if args.mode == 'train':
 
@@ -206,8 +192,26 @@ def main():
         test_losses = []
         epochs = []
 
-        n_trials = 20
+        n_trials = 2
         for i in range(n_trials):
+
+            tnn_model = tnn.tandem_model(
+                            train_data=train_data, 
+                            test_data=test_data,
+                            train_val_split_seed=random.randint(0,100),
+                            forward_architecture=forward_architecture, 
+                            inverse_architecture=inverse_architecture,
+                            num_inverse_layers_frozen=args.num_inverse_layers_frozen,
+                            epochs=max_epochs, 
+                            device=device, 
+                            dataset_name=args.dataset_name,
+                            forward_DNN_dataset=args.forward_DNN_dataset,
+                            inverse_DNN_dataset=args.inverse_DNN_dataset,
+                            loss_type=loss_type,
+                            forward_DNN=forward_DNN,
+                            inverse_DNN_path=inverse_DNN,
+                            configuration=args.configuration,
+                            verbose=verbose)   
 
             alpha=0
             final_train_loss, final_val_loss, epochs_to_converge = tnn_model.train(args.dataset_name, alpha=alpha)       
@@ -223,17 +227,6 @@ def main():
         test_losses = np.array(test_losses)
         epochs = np.array(epochs)
 
-
-        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
-            result_dir = f'results/inc_ss/{loss_type}'
-        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
-            result_dir = f'results/airfoil/{loss_type}'
-        os.makedirs(result_dir, exist_ok=True)
-
-        inverse_DNN_dataset = args.inverse_DNN_dataset
-        if args.inverse_DNN_dataset == None:
-            inverse_DNN_dataset = 'from_scratch'
-
         mean_train_loss = np.mean(train_losses)
         mean_val_loss = np.mean(val_losses)
         mean_test_loss = np.mean(test_losses)
@@ -244,7 +237,20 @@ def main():
         stdev_test_loss = np.std(test_losses)
         stdev_epochs = np.std(epochs)
 
-        outfile = f'{result_dir}/{args.inverse_layers_frozen}_layers_frozen/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
+
+        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
+            result_dir = f'results/inc_ss/{loss_type}'
+        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
+            result_dir = f'results/airfoil/{loss_type}'
+
+
+        inverse_DNN_dataset = args.inverse_DNN_dataset
+        if args.inverse_DNN_dataset == None:
+            inverse_DNN_dataset = 'from_scratch'
+
+        result_dir = f'{result_dir}/{int(args.num_inverse_layers_frozen/2)}_layers_frozen' if args.inverse_DNN_dataset != None else result_dir
+        os.makedirs(result_dir, exist_ok=True)
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
 
         obj = {'mean train loss': mean_train_loss,
                'mean val loss': mean_val_loss,

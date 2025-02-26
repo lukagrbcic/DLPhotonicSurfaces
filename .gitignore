@@ -50,3 +50,4 @@
 /pca_figs/pca_analysis.pdf
 *.pth
 nohup.out
+*.json
