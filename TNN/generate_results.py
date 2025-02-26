@@ -57,6 +57,6 @@ def make_results_df(dataset, transfer_dataset, results_dir):
     df['Test RMSE'] = test_col
     df['Epochs'] = epoch_col
 
-    df = df.reset_index(drop=True)
+    df = df.set_index('Config')
 
     return df

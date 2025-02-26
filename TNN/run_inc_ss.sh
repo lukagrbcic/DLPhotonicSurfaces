@@ -1,5 +1,4 @@
-
-!/bin/bash
+!/usr/bin/env bash
 
 source /home/vpatro/anaconda3/etc/profile.d/conda.sh
 conda activate dnn_env
@@ -28,13 +27,18 @@ python main.py standard stainless_steel stainless_steel
 ### TL Experiments
 ###############
 
-#### transfer learning experiments on inconel
-python main.py transfer_learning inconel inconel --inverse_DNN_dataset stainless_steel
-python main.py transfer_learning inconel stainless_steel 
-python main.py transfer_learning inconel stainless_steel --inverse_DNN_dataset stainless_steel
+layers=(2 4 6)
 
+# Transfer learning experiments on Inconel
+for num_layers in "${layers[@]}"; do
+    python main.py transfer_learning inconel inconel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
+    python main.py transfer_learning inconel stainless_steel
+    python main.py transfer_learning inconel stainless_steel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
+done
 
-#### transfer learning experiments on stainless steel
-python main.py transfer_learning stainless_steel stainless_steel --inverse_DNN_dataset inconel
-python main.py transfer_learning stainless_steel inconel 
-python main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel
+# Transfer learning experiments on Stainless Steel
+for num_layers in "${layers[@]}"; do
+    python main.py transfer_learning stainless_steel stainless_steel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
+    python main.py transfer_learning stainless_steel inconel
+    python main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
+done

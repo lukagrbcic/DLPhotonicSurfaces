@@ -19,7 +19,11 @@ plt.rcParams.update({
 class tandem_model():
     
     def __init__(self, train_data, test_data,
-                 forward_architecture, inverse_architecture, epochs, device,
+                 forward_architecture,
+                 inverse_architecture,
+                 inverse_layers_frozen,
+                 epochs,
+                 device,
                  dataset_name,
                  forward_DNN_dataset,
                  inverse_DNN_dataset,
@@ -36,6 +40,7 @@ class tandem_model():
         self.test_data = test_data #tuple (inputs, outputs)
         self.forward_architecture = forward_architecture #forward DNN architecture
         self.inverse_architecture = inverse_architecture #inverse DNN architecutre
+        self.num_inverse_layers_frozen = inverse_layers_frozen
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
@@ -136,6 +141,8 @@ class tandem_model():
         forward = self.forward_architecture
 
         if self.forward_DNN is not None:
+            print('device: ', self.device)
+            print('cuda:', torch.cuda.is_available())
             forward.load_state_dict(torch.load(self.forward_DNN[0]))
             print(f'Loading pretrained forward_DNN')
         else:
@@ -164,7 +171,7 @@ class tandem_model():
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
             print('Loading pretrained inverse_DNN')
-            inverse = self.freeze_layers(inverse, num_layers_to_freeze=2)
+            inverse = self.freeze_layers(inverse, num_layers_to_freeze=self.num_inverse_layers_frozen)
         else:
             print('Initializing inverse_DNN from scratch')
 

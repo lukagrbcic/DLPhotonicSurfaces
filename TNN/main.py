@@ -54,6 +54,13 @@ def main():
         help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
     )
 
+    parser.add_argument(
+        '--num_inverse_layers_frozen',
+        type=int,
+        default=0,
+        help='enter how many layer of the inverse DNN should be frozen in the TL configuration'
+    )
+
     args = parser.parse_args()
 
     #Since it is inverse training, reverse the data inputs
@@ -144,7 +151,8 @@ def main():
         print('Transfer learning configuration')
         print(f'dataset: ', args.dataset_name)
         print(f'forwardDNN dataset: ', args.forward_DNN_dataset)
-        print(f'inverseDNN dataset: ', args.inverse_DNN_dataset)
+        print(f'inverseDNN dataset: {args.inverse_DNN_dataset}')
+        print(f'{args.num_inverse_layers_frozen} layers of inverse DNN frozen')
         print('--------------------')
         print('')
 
@@ -173,11 +181,15 @@ def main():
 
     loss_type = 'standard_loss'
 
+    print('DEVICE: ', device)
+
     tnn_model = tnn.tandem_model(train_data, 
                                 test_data, 
                                 forward_architecture, 
-                                inverse_architecture, 
-                                epochs, device, 
+                                inverse_architecture,
+                                args.num_inverse_layers_frozen,
+                                epochs, 
+                                device, 
                                 dataset_name=args.dataset_name,
                                 forward_DNN_dataset=args.forward_DNN_dataset,
                                 inverse_DNN_dataset=args.inverse_DNN_dataset,
@@ -194,7 +206,7 @@ def main():
         test_losses = []
         epochs = []
 
-        n_trials = 10
+        n_trials = 20
         for i in range(n_trials):
 
             alpha=0
@@ -232,7 +244,7 @@ def main():
         stdev_test_loss = np.std(test_losses)
         stdev_epochs = np.std(epochs)
 
-        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
+        outfile = f'{result_dir}/{args.inverse_layers_frozen}_layers_frozen/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
 
         obj = {'mean train loss': mean_train_loss,
                'mean val loss': mean_val_loss,
