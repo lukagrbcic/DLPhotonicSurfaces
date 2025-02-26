@@ -194,7 +194,7 @@ def main():
         test_losses = []
         epochs = []
 
-        n_trials = 5
+        n_trials = 2
         for i in range(n_trials):
 
             alpha=0
@@ -232,7 +232,7 @@ def main():
         stdev_test_loss = np.std(test_losses)
         stdev_epochs = np.std(epochs)
 
-        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.txt'
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
 
         obj = {'mean train loss: ', mean_train_loss,
                'mean val loss: ', mean_val_loss,
@@ -243,12 +243,21 @@ def main():
                'epochs: ', mean_epochs,
                'epochs std: ', stdev_epochs}
 
-        file = open(outfile, 'w')
-        file.write(f'mean train loss: {mean_train_loss:.5f}, std: {stdev_train_loss:.5f} \n')
-        file.write(f'mean val loss: {mean_val_loss:.5f}, std: {stdev_val_loss:.5f} \n')
-        file.write(f'test loss: {mean_test_loss:.5f}, std: {stdev_test_loss:.5f} \n')
-        file.write(f'epochs to converge: {mean_epochs}')
-        file.close()
+        with open(f'{outfile}.json', 'w') as f:
+            json.dump(obj, f)
+
+        if args.dataset_name == 'inconel':
+            transfer_dataset = 'stainless_steel'
+        elif args.dataset_name == 'stainless_steel':
+            transfer_dataset = 'inconel'
+        elif args.dataset_name == 'airfoil_re_1_3':
+            transfer_dataset = 'airfoil_re_3_6'
+        elif args.dataset_name == 'airfoil_re_3_6':
+            transfer_dataset = 'airfoil_re_1_3'
+
+        df = make_results_df(args.dataset_name, transfer_dataset, result_dir)
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.csv'
+        df.to_csv(outfile)
 
     else: 
         emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
@@ -260,12 +269,53 @@ def make_results_df(dataset, transfer_dataset, results_dir):
 
     df = pd.DataFrame()
 
-    df['config'] = ['No TNN', 'TNN Standard', 'TL - 1', 'TL - 2', 'TL - 3']
-    df['forward DNN'] = [dataset, dataset, dataset, transfer_dataset, transfer_dataset]
-    df['inverse DNN'] = ['n/a', 'from scratch', transfer_dataset, 'from scratch', transfer_dataset]
+    df['Config'] = ['No TNN', 'TNN Standard', 'TL - 1', 'TL - 2', 'TL - 3']
+    df['Forward DNN'] = [dataset, dataset, dataset, transfer_dataset, transfer_dataset]
+    df['Inverse DNN'] = ['n/a', 'from scratch', transfer_dataset, 'from scratch', transfer_dataset]
 
-    tl_1_path = f'{results_dir}/transfer_learning_{dataset}_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}'
+    standard_path = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_from_scratch.json'
+    tl_1_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}.json'
+    tl2_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_from_scratch.json'
+    tl3_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_{transfer_dataset}.json'
 
+    train_losses = []
+    val_losses = []
+    test_losses = []
+
+    train_std = []
+    val_std = []
+    test_std = []
+
+    epochs = []
+    epochs_std = []
+
+    paths = [standard_path, tl_1_path, tl2_path, tl3_path]
+
+    for path in paths:
+
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        train_losses.append(data['mean train loss'])
+        val_losses.append(data['mean val loss'])
+        test_losses.append(data['test loss'])
+        train_std.append(data['train loss std'])
+        val_std.append(data['val loss std'])
+        test_std.append(data['test loss std'])
+        epochs.append(data['epochs'])
+        epochs_std.append(data['epochs std'])
+
+    train_col = [f'{tl} (+/- {tl_std})' for tl, tl_std in zip(train_losses, train_std)]
+    val_col = [f'{vl} (+/- {vl_std})' for vl, vl_std in zip(val_losses, val_std)]
+    test_col = [f'{tl} (+/- {tl_std})' for tl, tl_std in zip(test_losses, test_std)]
+    epoch_col = [f'{e} (+/- {e_std})' for e, e_std in zip(epochs. epoch_std)]
+
+    df['Train RMSE'] = train_col
+    df['Val RMSE'] = val_col
+    df['Test RMSE'] = test_col
+    df['Epochs'] = epoch_col
+
+    return df
 
 if __name__ == '__main__':
     main()
