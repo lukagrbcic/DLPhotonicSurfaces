@@ -1,1 +1,1 @@
-{"mean train loss": 0.06851602733756104, "mean val loss": 0.06702687910624913, "test loss": 0.04798996506810237, "train loss std": 0.00012549404054879726, "val loss std": 0.00025258559201445097, "test loss std": 6.204054472426501e-05, "epochs": 12.0, "epochs std": 4.0}
+{"mean train loss": 0.06822667921582856, "mean val loss": 0.06655788842056479, "test loss": 0.04897733016403111, "train loss std": 2.8992731540523283e-05, "val loss std": 0.00038383494919121705, "test loss std": 0.0005977973326265813, "epochs": 9.1, "epochs std": 2.0223748416156684}

@@ -194,7 +194,7 @@ def main():
         test_losses = []
         epochs = []
 
-        n_trials = 2
+        n_trials = 10
         for i in range(n_trials):
 
             alpha=0
