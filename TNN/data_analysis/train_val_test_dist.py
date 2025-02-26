@@ -14,6 +14,17 @@ def make_train_val_test_dist(dataset: str):
         train_input_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
         test_input_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
 
+    elif dataset == 'airfoil_re_1_3':
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_train_data.npy'
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_train_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_test_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_test_data.npy'
+    elif dataset == 'airfoil_re_3_6':
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_train_data.npy'
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_train_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
+
     train_output = np.load(train_output_path)
     train_input = np.load(train_input_path)
     x_test = np.load(test_input_path)

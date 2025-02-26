@@ -14,6 +14,18 @@ plt.rcParams.update({
     'text.latex.preamble': r'\usepackage{sfmath} \sffamily \usepackage{upgreek}',
     "font.size": 18,
 })
+
+def criterion(emissivity_preds, emissivity_targets,
+    parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard'):
+    if loss == 'standard':
+        return torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+    else:
+        emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+        # print('parameter preds shape: ', parameter_preds.shape)
+        # print('parameter targets shape: ', parameter_targets.shape)
+        laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
+
+    return laser_param_term + lambda_val*emissivity_term
    
 class tandem_model():
     
@@ -97,7 +109,7 @@ class tandem_model():
 
     def freeze_layers(self, inverse_DNN, num_layers_to_freeze):
 
-        print(f'Freezing first {num_layers_to_freeze/2} layers of inverse DNN')
+        print(f'Freezing first {int(num_layers_to_freeze/2)} layers of inverse DNN')
 
         total_layers = len(inverse_DNN.state_dict())
 
@@ -154,19 +166,6 @@ class tandem_model():
         else:
             print('Initializing inverse_DNN from scratch')
 
-        def criterion(emissivity_preds, emissivity_targets,
-                    parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard'):
-                if loss == 'standard':
-                    return torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                else:
-                    emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                    print('parameter preds shape: ', parameter_preds.shape)
-                    print('parameter targets shape: ', parameter_targets.shape)
-                    laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
-
-                return laser_param_term + lambda_val*emissivity_term
-                    
-
 
         optimizer = optim.Adam(inverse.parameters(), lr=0.0004) #0.0002
         early_stopping_patience = 5
@@ -216,11 +215,11 @@ class tandem_model():
                     param_outputs = inverse(emis_inputs)
                     emissivity_output = forward(param_outputs)
 
-                    print('emis inputs shape: ', emis_inputs.shape)
-                    print('param targets shape: ', param_targets.shape)
+                    # print('emis inputs shape: ', emis_inputs.shape)
+                    # print('param targets shape: ', param_targets.shape)
 
-                    print('param outputs shape: ', param_outputs.shape)
-                    print('emis outputs shape: ', emissivity_output.shape)
+                    # print('param outputs shape: ', param_outputs.shape)
+                    # print('emis outputs shape: ', emissivity_output.shape)
         
                     loss = criterion(emissivity_preds=emissivity_output,
                                     emissivity_targets=emis_inputs,
@@ -275,9 +274,6 @@ class tandem_model():
         print('-----INFERENCE----')
         print('------------------')
         print('')
-        
-        def criterion(outputs, targets):
-            return torch.sqrt(torch.mean((outputs - targets) ** 2))
         
         print ('TESTING MODE')
         print ('Using:', self.device)

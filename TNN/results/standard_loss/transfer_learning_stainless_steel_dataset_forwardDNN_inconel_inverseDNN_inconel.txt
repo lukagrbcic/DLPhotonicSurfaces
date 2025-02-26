@@ -1,0 +1,4 @@
+mean train loss: 0.03565, std: 7.500023465378861e-05 
+mean val loss: 0.03535, std: 9.985098195405568e-05 
+test loss: 0.05981, std: 0.00044244483350097756 
+epochs to converge: 35.4

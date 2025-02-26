@@ -66,11 +66,16 @@ def main():
         train_input_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
         test_output_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
         test_input_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_data/output_test_data.npy'
+    elif args.dataset_name == 'airfoil_re_1_3':
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_test_data.npy'
+    elif args.dataset_name == 'airfoil_re_3_6':
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
 
 
     X_train = np.load(train_input_path)
@@ -165,7 +170,7 @@ def main():
     epochs = 1000
     verbose = True
 
-    loss_type = 'standard'
+    loss_type = 'standard_loss'
 
     tnn_model = tnn.tandem_model(train_data, 
                                 test_data, 
@@ -205,7 +210,11 @@ def main():
         test_losses = np.array(test_losses)
         epochs = np.array(epochs)
 
-        result_dir = f'results/{loss_type}'
+
+        if args.dataset == 'inconel' or args.dataset == 'stainless_steel':
+            result_dir = f'results/inc_ss/{loss_type}'
+        elif args.dataset == 'airfoil_re_1_3' or args.dataset == 'airfoil_re_3_6':
+            result_dir = f'results/airfoil/{loss_type}'
         os.makedirs(result_dir, exist_ok=True)
 
         inverse_DNN_dataset = args.inverse_DNN_dataset
@@ -224,9 +233,9 @@ def main():
         outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.txt'
 
         file = open(outfile, 'w')
-        file.write(f'mean train loss: {mean_train_loss:.5f}, std: {stdev_train_loss} \n')
-        file.write(f'mean val loss: {mean_val_loss:.5f}, std: {stdev_val_loss} \n')
-        file.write(f'test loss: {mean_test_loss:.5f}, std: {stdev_test_loss} \n')
+        file.write(f'mean train loss: {mean_train_loss:.5f}, std: {stdev_train_loss:.5f} \n')
+        file.write(f'mean val loss: {mean_val_loss:.5f}, std: {stdev_val_loss:.5f} \n')
+        file.write(f'test loss: {mean_test_loss:.5f}, std: {stdev_test_loss:.5f} \n')
         file.write(f'epochs to converge: {mean_epochs}')
         file.close()
 

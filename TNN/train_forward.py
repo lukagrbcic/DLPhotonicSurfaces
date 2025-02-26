@@ -57,11 +57,16 @@ def main():
         train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
         test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
         test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_data/output_test_data.npy'
+    elif args.dataset_name == 'airfoil_re_1_3':
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_test_data.npy'
+    elif args.dataset_name == 'airfoil_re_3_6':
+        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_train_data.npy'
+        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_train_data.npy'
+        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
+        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -89,11 +94,19 @@ def main():
 
 
 
-def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name):    
+def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
+
+    print('')
+    print('--------------------')
+    print(f'LOADED {dataset_name} DATASET')
+    print('--------------------')
+    print('')   
 
     print(f'Using device: {device}')
     X_ = np.load(train_input_path)
     y_ = np.load(train_output_path)
+    
+    
 
     print('shape of input train data: ', X_.shape)
     print('shape of output train data: ', y_.shape)
