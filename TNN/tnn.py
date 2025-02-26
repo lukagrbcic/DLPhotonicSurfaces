@@ -57,6 +57,8 @@ class tandem_model():
         self.loss_type = loss_type
         self.device = device
         self.rmse_loss = rmse_loss
+
+        self.inverse_DNN = None
     
     def get_torch_dataloader(self, data, inference=False):
         
@@ -231,6 +233,7 @@ class tandem_model():
             print('Saved model')
         else:
             torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_DNN.pth')
+            self.inverse_DNN = inverse
             print('Saved model')
 
 

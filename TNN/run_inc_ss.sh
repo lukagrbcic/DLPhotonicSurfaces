@@ -21,7 +21,7 @@ conda activate dnn_env
 python main.py standard inconel inconel 
 
 # ### stainless steel inverse will be trained and saved
-# python main.py standard stainless_steel stainless_steel
+python main.py standard stainless_steel stainless_steel
 
 ###############
 ### TL Experiments

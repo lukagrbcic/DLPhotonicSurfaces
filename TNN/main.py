@@ -192,6 +192,8 @@ def main():
         test_losses = []
         epochs = []
 
+        models = []
+
         n_trials = 2
         for i in range(n_trials):
 
@@ -221,6 +223,9 @@ def main():
             val_losses.append(final_val_loss)
             test_losses.append(mean_loss)
             epochs.append(epochs_to_converge)
+
+            if args.configuration == 'standard':
+                models.append(tnn_model)
 
         train_losses = np.array(train_losses)
         val_losses = np.array(val_losses)
@@ -264,6 +269,13 @@ def main():
                
         with open(outfile, 'w') as f:
             json.dump(obj, f)
+
+        if args.configuration == 'standard':
+            best_model_idx = np.argmin(test_losses)
+            best_model = models[best_model_idx]
+
+            torch.save(best_model.inverse_DNN.state_dict(), f'inverseDNN/{args.dataset_name}_inverse_DNN.pth')
+            print('Saved best inverse DNN from standard config')
 
     else: 
         emissivity_predictions, laser_parameters_predictions, rmse = tnn_model.test()
