@@ -194,7 +194,7 @@ def main():
 
         models = []
 
-        n_trials = 2
+        n_trials = 20
         for i in range(n_trials):
 
             tnn_model = tnn.tandem_model(
