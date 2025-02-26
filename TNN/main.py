@@ -194,7 +194,7 @@ def main():
         test_losses = []
         epochs = []
 
-        n_trials = 2
+        n_trials = 5
         for i in range(n_trials):
 
             alpha=0
@@ -212,9 +212,9 @@ def main():
         epochs = np.array(epochs)
 
 
-        if args.dataset == 'inconel' or args.dataset == 'stainless_steel':
+        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
             result_dir = f'results/inc_ss/{loss_type}'
-        elif args.dataset == 'airfoil_re_1_3' or args.dataset == 'airfoil_re_3_6':
+        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
             result_dir = f'results/airfoil/{loss_type}'
         os.makedirs(result_dir, exist_ok=True)
 
@@ -234,16 +234,17 @@ def main():
 
         outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
 
-        obj = {'mean train loss: ', mean_train_loss,
-               'mean val loss: ', mean_val_loss,
-               'test loss: ', mean_test_loss,
-               'train loss std: ', stdev_train_loss,
-               'val loss std: ', stdev_val_loss,
-               'test loss std: ', stdev_test_loss,
-               'epochs: ', mean_epochs,
-               'epochs std: ', stdev_epochs}
-
-        with open(f'{outfile}.json', 'w') as f:
+        obj = {'mean train loss': mean_train_loss,
+               'mean val loss': mean_val_loss,
+               'test loss': mean_test_loss,
+               'train loss std': stdev_train_loss,
+               'val loss std': stdev_val_loss,
+               'test loss std': stdev_test_loss,
+               'epochs': mean_epochs,
+               'epochs std': stdev_epochs
+               }
+               
+        with open(outfile, 'w') as f:
             json.dump(obj, f)
 
         if args.dataset_name == 'inconel':

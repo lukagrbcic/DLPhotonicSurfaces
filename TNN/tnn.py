@@ -15,17 +15,6 @@ plt.rcParams.update({
     "font.size": 18,
 })
 
-def criterion(emissivity_preds, emissivity_targets,
-    parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard'):
-    if loss == 'standard':
-        return torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-    else:
-        emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-        # print('parameter preds shape: ', parameter_preds.shape)
-        # print('parameter targets shape: ', parameter_targets.shape)
-        laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
-
-    return laser_param_term + lambda_val*emissivity_term
    
 class tandem_model():
     
@@ -159,6 +148,19 @@ class tandem_model():
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
 
+        def criterion(emissivity_preds, emissivity_targets,
+            parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard_loss'):
+            if loss == 'standard_loss':
+                out = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                return out
+            else:
+                emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                # print('parameter preds shape: ', parameter_preds.shape)
+                # print('parameter targets shape: ', parameter_targets.shape)
+                laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
+
+            return laser_param_term + lambda_val*emissivity_term
+
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
             print('Loading pretrained inverse_DNN')
@@ -194,14 +196,12 @@ class tandem_model():
                 # compute loss across the TNN produced emissivities and the inputs to the inverse model, 
                 # which are taken from the training data
 
-                print('parameter preds shape: ', train_param_outputs.shape)
-                print('parameter targets shape: ', train_param_targets.shape)
-
 
                 loss = criterion(emissivity_preds=train_emissivity_output,
                                     emissivity_targets=train_emis_inputs,
                                     parameter_preds=train_param_outputs,
                                     parameter_targets=train_param_targets, lambda_val=0.8, loss=self.loss_type)
+
                 # this will only change the weights of the inverse DNN
                 loss.backward()
                 optimizer.step()
@@ -220,8 +220,8 @@ class tandem_model():
                     val_param_outputs = inverse(val_emis_inputs)
                     val_emissivity_output = forward(val_param_outputs)
 
-                    print('parameter preds shape: ', val_param_outputs.shape)
-                    print('parameter targets shape: ', val_param_targets.shape)
+                    # print('parameter preds shape: ', val_param_outputs.shape)
+                    # print('parameter targets shape: ', val_param_targets.shape)
         
                     loss = criterion(emissivity_preds=val_emissivity_output,
                                     emissivity_targets=val_emis_inputs,
@@ -280,6 +280,19 @@ class tandem_model():
         print ('TESTING MODE')
         print ('Using:', self.device)
         print('')
+
+        def criterion(emissivity_preds, emissivity_targets,
+            parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard_loss'):
+            if loss == 'standard_loss':
+                out = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                return out
+            else:
+                emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                # print('parameter preds shape: ', parameter_preds.shape)
+                # print('parameter targets shape: ', parameter_targets.shape)
+                laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
+
+            return laser_param_term + lambda_val*emissivity_term
 
         forward = self.forward_architecture
         inverse = self.inverse_architecture
