@@ -162,7 +162,7 @@ class tandem_model():
         if self.inverse_DNN_path is not None:
             inverse.load_state_dict(torch.load(self.inverse_DNN_path))
             print('Loading pretrained inverse_DNN')
-            inverse = self.freeze_layers(inverse, num_layers_to_freeze=4)
+            inverse = self.freeze_layers(inverse, num_layers_to_freeze=2)
         else:
             print('Initializing inverse_DNN from scratch')
 
@@ -183,20 +183,25 @@ class tandem_model():
         for epoch in range(num_epochs):
             inverse.train()
             epoch_train_loss = 0
-            for emis_inputs, param_targets in tqdm(train_loader):
+            for train_emis_inputs, train_param_targets in tqdm(train_loader):
                 optimizer.zero_grad()
                 # map emissivity curves to laser parameters
-                laser_param_outputs = inverse(emis_inputs)
+                train_param_outputs = inverse(train_emis_inputs)
 
                 # map the laser parameters back to emissivity curves
-                emissivity_output = forward(laser_param_outputs)
+                train_emissivity_output = forward(train_param_outputs)
            
                 # compute loss across the TNN produced emissivities and the inputs to the inverse model, 
                 # which are taken from the training data
-                loss = criterion(emissivity_preds=emissivity_output,
-                                    emissivity_targets=emis_inputs,
-                                    parameter_preds=laser_param_outputs,
-                                    parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
+
+                print('parameter preds shape: ', train_param_outputs.shape)
+                print('parameter targets shape: ', train_param_targets.shape)
+
+
+                loss = criterion(emissivity_preds=train_emissivity_output,
+                                    emissivity_targets=train_emis_inputs,
+                                    parameter_preds=train_param_outputs,
+                                    parameter_targets=train_param_targets, lambda_val=0.8, loss=self.loss_type)
                 # this will only change the weights of the inverse DNN
                 loss.backward()
                 optimizer.step()
@@ -209,22 +214,19 @@ class tandem_model():
             inverse.eval()
             with torch.no_grad():
                 total_val_loss = 0
-                for emis_inputs, param_targets in val_loader:
+                for val_emis_inputs, val_param_targets in val_loader:
 
                     # map emissivity -> laser parameters -> emissivity again
-                    param_outputs = inverse(emis_inputs)
-                    emissivity_output = forward(param_outputs)
+                    val_param_outputs = inverse(val_emis_inputs)
+                    val_emissivity_output = forward(val_param_outputs)
 
-                    # print('emis inputs shape: ', emis_inputs.shape)
-                    # print('param targets shape: ', param_targets.shape)
-
-                    # print('param outputs shape: ', param_outputs.shape)
-                    # print('emis outputs shape: ', emissivity_output.shape)
+                    print('parameter preds shape: ', val_param_outputs.shape)
+                    print('parameter targets shape: ', val_param_targets.shape)
         
-                    loss = criterion(emissivity_preds=emissivity_output,
-                                    emissivity_targets=emis_inputs,
-                                    parameter_preds=laser_param_outputs,
-                                    parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)   
+                    loss = criterion(emissivity_preds=val_emissivity_output,
+                                    emissivity_targets=val_emis_inputs,
+                                    parameter_preds=val_param_outputs,
+                                    parameter_targets=val_param_targets, lambda_val=0.8, loss=self.loss_type)   
         
                     total_val_loss += loss.item()  
                     

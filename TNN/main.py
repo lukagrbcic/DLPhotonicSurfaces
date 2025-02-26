@@ -6,14 +6,14 @@ import torch
 import matplotlib.pyplot as plt
 import time
 sys.path.insert(0, 'src')
-
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 import tnn as tnn
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 import argparse
+import pandas as pd
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main():
 
@@ -244,6 +244,17 @@ def main():
 
     #inverse_model.post_process(emissivity_predictions, laser_parameters_predictions, rmse)
     print('COMPLETE')
+
+def make_results_df(dataset, transfer_dataset, results_dir):
+
+    df = pd.DataFrame()
+
+    df['config'] = ['No TNN', 'TNN Standard', 'TL - 1', 'TL - 2', 'TL - 3']
+    df['forward DNN'] = [dataset, dataset, dataset, transfer_dataset, transfer_dataset]
+    df['inverse DNN'] = ['n/a', 'from scratch', transfer_dataset, 'from scratch', transfer_dataset]
+
+    tl_1_path = f'{results_dir}/transfer_learning_{dataset}_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}'
+
 
 if __name__ == '__main__':
     main()

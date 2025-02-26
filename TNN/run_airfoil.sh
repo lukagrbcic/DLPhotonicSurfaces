@@ -4,7 +4,8 @@ source /home/vpatro/anaconda3/etc/profile.d/conda.sh
 conda activate dnn_env
 ###############
 ### TRAIN FORWARD DNNS
-###############
+###############;
+
 
 ### airfoil_re_1_3 DATA
 python train_forward.py airfoil_re_1_3 configs/forward/forward.yaml 
