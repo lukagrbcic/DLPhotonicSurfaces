@@ -50,7 +50,7 @@ def make_results_df(dataset, transfer_dataset, results_dir, num_inverse_layers_f
     train_col = [f'{tl:.5f} (+/- {tl_std:.5f})' for tl, tl_std in zip(train_losses, train_std)]
     val_col = [f'{vl:.5f} (+/- {vl_std:.5f})' for vl, vl_std in zip(val_losses, val_std)]
     test_col = [f'{tl:.5f} (+/- {tl_std:.5f})' for tl, tl_std in zip(test_losses, test_std)]
-    epoch_col = [f'{e} (+/- {e_std})' for e, e_std in zip(epochs, epochs_std)]
+    epoch_col = [f'{e} (+/- {e_std:.2f})' for e, e_std in zip(epochs, epochs_std)]
 
     df['Train RMSE'] = train_col
     df['Val RMSE'] = val_col

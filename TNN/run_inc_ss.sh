@@ -28,15 +28,15 @@ python main.py standard stainless_steel stainless_steel
 ###############
 
 # Transfer learning experiments on Inconel
-# python main.py transfer_learning inconel stainless_steel
-# for num_layers in 2 4 6; do
-#     python main.py transfer_learning inconel inconel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
-#     python main.py transfer_learning inconel stainless_steel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
-# done
+python main.py transfer_learning inconel stainless_steel
+for num_layers in 2 4 6; do
+    python main.py transfer_learning inconel inconel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
+    python main.py transfer_learning inconel stainless_steel --inverse_DNN_dataset stainless_steel --num_inverse_layers_frozen $num_layers
+done
 
 # Transfer learning experiments on Stainless Steel
-# python main.py transfer_learning stainless_steel inconel
-# for num_layers in 2 4 6; do
-#     python main.py transfer_learning stainless_steel stainless_steel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
-#     python main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
-# done
+python main.py transfer_learning stainless_steel inconel
+for num_layers in 2 4 6; do
+    python main.py transfer_learning stainless_steel stainless_steel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
+    python main.py transfer_learning stainless_steel inconel --inverse_DNN_dataset inconel --num_inverse_layers_frozen $num_layers
+done
