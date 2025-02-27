@@ -76,7 +76,10 @@ def main():
     if args.mode == 'train':
         print('Performing training followed by inference')
         print('\n')
-        model = invfow.forwardMLP(input_size, output_size).to(device)
+        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
+            model = invfow.forwardMLP(input_size, output_size).to(device)
+        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
+            model = invfow.airfoil_forward_DNN(input_size, output_size).to(device)
         print(model)
         config = load_config(args.config_file_path)
 
@@ -84,7 +87,10 @@ def main():
     else:
         print('Loading pretrained model and performing inference')
         print('\n')
-        model = invfow.forwardMLP(input_size, output_size).to(device)
+        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
+            model = invfow.forwardMLP(input_size, output_size).to(device)
+        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
+            model = invfow.airfoil_forward_DNN(input_size, output_size).to(device)
         forward_model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
         model.load_state_dict(torch.load(forward_model_path))
         config = load_config(args.config_file_path)
