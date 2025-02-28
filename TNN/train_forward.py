@@ -10,6 +10,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import joblib
 from tqdm import tqdm
+import xgboost
+
+
 import sys
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
@@ -79,7 +82,7 @@ def main():
         if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
             model = invfow.forwardMLP(input_size, output_size).to(device)
         elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
-            model = invfow.airfoil_forward_DNN(input_size, output_size).to(device)
+            model = XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
         print(model)
         config = load_config(args.config_file_path)
 
@@ -120,6 +123,7 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
 
 
+    ## MinMaxScaler on data
     sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
     joblib.dump(sc, f'forwardDNN/{dataset_name}_scaler.pkl')
