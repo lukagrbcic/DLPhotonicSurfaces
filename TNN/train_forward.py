@@ -79,29 +79,22 @@ def main():
     if args.mode == 'train':
         print('Performing training followed by inference')
         print('\n')
-        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
-            model = invfow.forwardMLP(input_size, output_size).to(device)
-        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
-            model = XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
+        model = invfow.forwardMLP(input_size, output_size).to(device)            
         print(model)
+        
         config = load_config(args.config_file_path)
-
         train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
+
     else:
         print('Loading pretrained model and performing inference')
         print('\n')
-        if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
-            model = invfow.forwardMLP(input_size, output_size).to(device)
-        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
-            model = invfow.airfoil_forward_DNN(input_size, output_size).to(device)
+        model = invfow.forwardMLP(input_size, output_size).to(device)
         forward_model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
         model.load_state_dict(torch.load(forward_model_path))
         config = load_config(args.config_file_path)
 
     predictions, rmse_losses = inference(model, test_loader)
     plot_results(train_losses, val_losses)
-
-
 
 def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
 
@@ -115,12 +108,10 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     X_ = np.load(train_input_path)
     y_ = np.load(train_output_path)
     
-    
-
     print('shape of input train data: ', X_.shape)
     print('shape of output train data: ', y_.shape)
 
-    X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.1, shuffle=False, random_state=11)
+    X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.2, shuffle=False, random_state=11)
 
 
     ## MinMaxScaler on data
