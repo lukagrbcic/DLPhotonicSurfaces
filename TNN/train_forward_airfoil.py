@@ -1,8 +1,13 @@
 import numpy as np
 import argparse
 import joblib
+import torch
+import xgboost as xgb
 
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
+
 
 
 def main():
@@ -44,6 +49,47 @@ def main():
                                                 device=device,
                                                 dataset_name=args.dataset_name)
 
+    model = xgb.XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
+
+    if args.mode == 'train':
+        print('------------')
+        print('TRAINING BEGINNING')
+        print('------------')
+        model.fit(X_train, y_train)
+        y_pred_train = model.predict(X_train)
+        print('------------')
+        print('TRAINING COMPLETE')
+        print('------------')
+
+        mse = mean_squared_error(y_train, y_pred_train)
+        train_rmse = np.sqrt(mse)
+    
+    elif args.mode == 'inference':
+        print('------------')
+        print('LOADING PRETRAINED MODEL')
+        print('------------')
+        model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pkl'
+        model = joblib.load(model_path)
+        
+    print('------------')
+    print('INFERENCE BEGINNING')
+    print('------------')
+    y_pred = model.predict(X_test)
+    print('------------')
+    print('INFERENCE COMPLETE')
+    print('------------')
+    mse = mean_squared_error(y_test, y_pred)
+    test_rmse = np.sqrt(mse)
+
+    print('Train MSE: ', train_rmse)
+    print('Test MSE: ', test_rmse)
+
+    print('COMPLETE')
+
+
+
+
+
 def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
 
     print('')
@@ -56,8 +102,8 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     X_train = np.load(train_input_path)
     y_train = np.load(train_output_path)
     
-    print('shape of input train data: ', X_.shape)
-    print('shape of output train data: ', y_.shape)
+    print('shape of input train data: ', X_train.shape)
+    print('shape of output train data: ', y_train.shape)
 
     ## MinMaxScaler on data
     sc = MinMaxScaler(clip=True)
@@ -70,7 +116,7 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     print('shape of input test data: ', X_test.shape)
     print('shape of output test data: ', y_test.shape)
 
-    X_test_ = sc.transform(X_test_)
+    X_test_ = sc.transform(X_test)
 
     return X_train, y_train, X_test, y_test
 
