@@ -113,8 +113,13 @@ class tandem_model():
         forward = self.forward_architecture
 
         if self.forward_DNN is not None:
-            forward.load_state_dict(torch.load(self.forward_DNN[0]))
-            print(f'Loading pretrained forward_DNN on {self.forward_DNN_dataset}')
+            if self.forward_DNN_dataset == 'airfoil_re_1_3' or self.forward_DNN_dataset == 'airfoil_re_3_6':
+                model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pkl'
+                forward_DNN = joblib.load(model_path)
+                print(f'Loading pretrained XGBRegressor pretrained on {self.forward_DNN_dataset}')
+            else:
+                forward.load_state_dict(torch.load(self.forward_DNN[0]))
+                print(f'Loading pretrained forward_DNN on {self.forward_DNN_dataset}')
         else:
             print('Initializing forward_DNN from scratch')
         forward.eval()
