@@ -37,6 +37,11 @@ def main():
         help='enter the name of the dataset to be processed'
     )
     parser.add_argument(
+        'configuration',
+        type=str,
+        default='standard'
+    )
+    parser.add_argument(
         'config_file_path',
         type=str,
         help='enter path to config file'
@@ -46,6 +51,15 @@ def main():
         type=str,
         default = 'train',
         help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
+    )
+    parser.add_argument(
+        'hot_start_model_path',
+        type=str,
+    )
+    parser.add_argument(
+        'num_layers_to_transfer',
+        type=int,
+        default=1
     )
 
     args = parser.parse_args()
@@ -77,13 +91,61 @@ def main():
     train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
     if args.mode == 'train':
-        print('Performing training followed by inference')
-        print('\n')
-        model = invfow.forwardMLP(input_size, output_size).to(device)            
-        print(model)
+
+        ### we are training a forward DNN from scratch
+        if args.configuration == 'standard':
+            print('Performing training followed by inference')
+            print('\n')
+            model = invfow.forwardMLP(input_size, output_size).to(device)            
+            print(model)
+            
+            config = load_config(args.config_file_path)
+            train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
         
-        config = load_config(args.config_file_path)
-        train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
+        ### we are doing transfer learning
+        else:
+            model = invfow.forwardMLP(input_size, output_size).to(device)            
+            print(model)
+
+            transfer_model = invfow.forwardMLP(input_size, output_size).to(device) 
+            transfer_model.load_state_dict(torch.load(args.hot_start_model_path))
+
+            hot_start_dataset = args.hot_start_model_path.split('/')[1].split('_')[0].split('_')[0]
+            print('hot start dataset: ', hot_start_dataset)
+
+            hot_start_params = []
+            print(f'Transferring over {args.num_layers_to_transfer} layers from {hot_start_dataset} dataset')
+            count = 0
+            for p in transfer_model.parameters():
+                if count <= args.num_layers_to_transfer * 2:
+                    hot_start_params.append(p) 
+
+                count += 1
+
+            count = 0
+            for p in model.parameters():
+                if count <= args.num_layers_to_transfer * 2:
+                    p = hot_start_params[count]
+                    p.requires_grad = False
+
+                count += 1
+
+            for p in model.parameters():
+                print(p)
+
+            print()
+            print('State Dict')
+            print()
+
+            for k, v in model.state_dict().items():
+                print(f'{k}: k, v: {v}')
+
+            print('\n Model post transfer \n')
+
+
+            import sys
+            sys.exit(0)
+
 
     else:
         print('Loading pretrained model and performing inference')
