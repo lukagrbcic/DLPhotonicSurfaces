@@ -53,11 +53,11 @@ def main():
         help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
     )
     parser.add_argument(
-        'hot_start_model_path',
+        '--hot_start_model_path',
         type=str,
     )
     parser.add_argument(
-        'num_layers_to_transfer',
+        '--num_layers_to_transfer',
         type=int,
         default=1
     )
@@ -97,55 +97,76 @@ def main():
             print('Performing training followed by inference')
             print('\n')
             model = invfow.forwardMLP(input_size, output_size).to(device)            
-            print(model)
-            
-            config = load_config(args.config_file_path)
-            train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
+            print(model.model)
         
         ### we are doing transfer learning
         else:
+            print()
+            print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
+            # random weights
             model = invfow.forwardMLP(input_size, output_size).to(device)            
-            print(model)
+            print(model.model)
+            print()
 
-            transfer_model = invfow.forwardMLP(input_size, output_size).to(device) 
-            transfer_model.load_state_dict(torch.load(args.hot_start_model_path))
+            # hot start weights
+            hot_start_model = invfow.forwardMLP(input_size, output_size).to(device) 
+            hot_start_model.load_state_dict(torch.load(args.hot_start_model_path))
 
             hot_start_dataset = args.hot_start_model_path.split('/')[1].split('_')[0].split('_')[0]
-            print('hot start dataset: ', hot_start_dataset)
+            print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
 
-            hot_start_params = []
-            print(f'Transferring over {args.num_layers_to_transfer} layers from {hot_start_dataset} dataset')
-            count = 0
-            for p in transfer_model.parameters():
-                if count <= args.num_layers_to_transfer * 2:
-                    hot_start_params.append(p) 
+            # doing the layer transfer
+            if args.num_layers_to_transfer == 1:
+                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
 
-                count += 1
+            elif args.num_layers_to_transfer == 2:
+                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+                model.linear2.load_state_dict(hot_start_model.linear2.state_dict())
 
             count = 0
             for p in model.parameters():
-                if count <= args.num_layers_to_transfer * 2:
-                    p = hot_start_params[count]
+                if count < args.num_layers_to_transfer*2:
                     p.requires_grad = False
-
                 count += 1
 
+            ### verifying that transfer done properly
+
+            i = 0
+            for key in model.state_dict().keys():
+                if i < 8:
+                    if i < args.num_layers_to_transfer*2:
+                        # print(model.state_dict()[key])
+                        # print(hot_start_model.state_dict()[key])
+                        assert torch.all(torch.eq(model.state_dict()[key], hot_start_model.state_dict()[key])).item()
+                    else:
+                        # print(model.state_dict()[key])
+                        # print(hot_start_model.state_dict()[key])
+                        # print(torch.all(torch.ne(model.state_dict()[key], hot_start_model.state_dict()[key])))
+                        if model.state_dict()[key].ndim == 1:
+                            assert model.state_dict()[key][0] != hot_start_model.state_dict()[key][0]
+                        else:
+                            assert model.state_dict()[key][0,0] != hot_start_model.state_dict()[key][0,0]
+                else:
+                    break
+                i += 1
+
+            count = 0
             for p in model.parameters():
-                print(p)
+                if count < args.num_layers_to_transfer*2:
+                    assert p.requires_grad == False
+                else:
+                    assert p.requires_grad == True
+                count += 1
 
+            print('TRANSFER COMPLETE')
             print()
-            print('State Dict')
-            print()
 
-            for k, v in model.state_dict().items():
-                print(f'{k}: k, v: {v}')
+            for p in model.parameters():
+                print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
+                
 
-            print('\n Model post transfer \n')
-
-
-            import sys
-            sys.exit(0)
-
+        config = load_config(args.config_file_path)
+        train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
 
     else:
         print('Loading pretrained model and performing inference')

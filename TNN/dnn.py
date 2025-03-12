@@ -6,16 +6,25 @@ import torch.optim as optim
 class forwardMLP(nn.Module):
     def __init__(self, input_size, output_size):
         super(forwardMLP, self).__init__()
+
+        self.linear1 = nn.Linear(input_size, 64)
+        self.linear2 = nn.Linear(64, 128)
+        self.linear3 = nn.Linear(128, 64)
+        self.linear4 = nn.Linear(64, output_size)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
         self.model = nn.Sequential(
-            nn.Linear(input_size, 64),
-            nn.ReLU(),
-            nn.Linear(64, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, output_size),
-            nn.Sigmoid()
+            self.linear1,
+            self.relu,
+            self.linear2,
+            self.relu,
+            self.linear3,
+            self.relu,
+            self.linear4,
+            self.sigmoid
         )
+
     def forward(self, x):
         return self.model(x)
 
