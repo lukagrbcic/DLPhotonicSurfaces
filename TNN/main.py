@@ -42,6 +42,20 @@ def main():
     )
 
     parser.add_argument(
+        'forward_DNN_hot_start',
+        type=bool,
+        default=False,
+        help = 'enter whether the forward DNN has been hot started or not'
+    )
+
+    parser.add_argument(
+        '--forward_DNN_hot_start_dataset',
+        type=str,
+        default=None,
+        help='enter the name of the dataset the forward DNN was hot started with'
+    )
+
+    parser.add_argument(
         '--inverse_DNN_dataset',
         type=str,
         default=None,
@@ -123,6 +137,8 @@ def main():
     forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
     scaler = joblib.load(forward_scaler_path)
     print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
+
+    if 
     forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
     print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
     forward_DNN = (forward_DNN_path, scaler)

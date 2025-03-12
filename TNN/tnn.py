@@ -29,6 +29,7 @@ class tandem_model():
                 device,
                 dataset_name,
                 forward_DNN_dataset,
+                forward_DNN_hot_start,
                 inverse_DNN_dataset,
                 loss_type,
                 batch_size = 64,
@@ -48,6 +49,7 @@ class tandem_model():
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
+        self.forward_DNN_hot_start = forward_DNN_hot_start
         self.inverse_DNN_dataset = inverse_DNN_dataset
         self.batch_size = batch_size
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
@@ -81,7 +83,7 @@ class tandem_model():
 
         count = 0
         for p in inverse_DNN.parameters():
-            if count < num_layers_to_freeze:
+            if count < num_layers_to_freeze*2:
                 p.requires_grad=False
             count+=1
 
@@ -112,9 +114,10 @@ class tandem_model():
         ## 
         forward = self.forward_architecture
 
+        # we are loading a pretrained forward_DNN
         if self.forward_DNN is not None:
             if self.forward_DNN_dataset == 'airfoil_re_1_3' or self.forward_DNN_dataset == 'airfoil_re_3_6':
-                model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pkl'
+                model_path = f'forwardDNN/{self.dataset_name}_forward_DNN.pkl'
                 forward_DNN = joblib.load(model_path)
                 print(f'Loading pretrained XGBRegressor pretrained on {self.forward_DNN_dataset}')
             else:

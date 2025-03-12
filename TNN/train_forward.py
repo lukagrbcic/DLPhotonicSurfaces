@@ -96,7 +96,8 @@ def main():
         if args.configuration == 'standard':
             print('Performing training followed by inference')
             print('\n')
-            model = invfow.forwardMLP(input_size, output_size).to(device)            
+            model = invfow.forwardMLP(input_size, output_size).to(device)  
+            hot_start_dataset = None          
             print(model.model)
         
         ### we are doing transfer learning
@@ -163,10 +164,16 @@ def main():
 
             for p in model.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
-                
+
 
         config = load_config(args.config_file_path)
-        train_losses, val_losses = train(model, config, train_loader, val_loader, args.dataset_name)
+        train_losses, val_losses = train(model,
+                                        config,
+                                        train_loader,
+                                        val_loader,
+                                        args.dataset_name,
+                                        setting=args.configuration,
+                                        hot_start_dataset_name=hot_start_dataset)
 
     else:
         print('Loading pretrained model and performing inference')
@@ -235,12 +242,10 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
 
     return train_loader, val_loader, test_loader, input_size, output_size
 
-
 def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
-
-def train(model, config, train_loader, val_loader, dataset_name):
+def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset_name):
 
     print('------------------')
     print('-----TRAINING-----')
@@ -261,25 +266,19 @@ def train(model, config, train_loader, val_loader, dataset_name):
     num_epochs = config['model_params']['n_epochs']
     for epoch in range(num_epochs):
         model.train()
-        epoch_train_loss = 0
-        epoch_train_rmse = 0.0
+        epoch_train_loss = 0.0
         for inputs, targets in tqdm(train_loader):
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
-            train_rmse = calculate_rmse(outputs, targets)
             loss.backward()
             optimizer.step()
             epoch_train_loss += loss.item()  
-            epoch_train_rmse += train_rmse
 
 
 
         avg_train_loss = epoch_train_loss / len(train_loader)
         train_losses.append(avg_train_loss)
-
-        avg_train_rmse = epoch_train_rmse / len(train_loader)
-        train_rmse_vals.append(avg_train_rmse)
         
         # Validation loss
         model.eval()
@@ -289,18 +288,12 @@ def train(model, config, train_loader, val_loader, dataset_name):
             for inputs, targets in val_loader:
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)       
-                val_rmse = calculate_rmse(outputs, targets)     
                 total_val_loss += loss.item()  # Accumulate validation loss
-                total_val_rmse += val_rmse
 
         avg_val_loss = total_val_loss / len(val_loader)  # Calculate average validation loss
         val_losses.append(avg_val_loss)
 
-        avg_val_rmse = total_val_rmse / len(val_loader)
-        val_rmse_vals.append(avg_val_rmse)
-
-        print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss}, Validation Loss: {avg_val_loss}')
-        print(f'Epoch {epoch+1}/{num_epochs}, Training RMSE: {avg_train_rmse}, Validation RMSE: {avg_val_rmse}')
+        print(f'Epoch {epoch+1}/{num_epochs}, Training RMSE: {avg_train_loss}, Validation RMSE: {avg_val_loss}')
         
         # Early stopping logic
         if avg_val_loss < best_loss:
@@ -314,19 +307,17 @@ def train(model, config, train_loader, val_loader, dataset_name):
             print(f'Early stopping at epoch {epoch+1}')
             break
 
-        # print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
-        
-    torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_forward_DNN.pth')
+    ### saving mechanism
+    if setting == 'standard':
+        torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_forward_DNN.pth')
+    else:
+        torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_with_{hot_start_dataset_name}_hot_start_forward_DNN.pth')
 
     print('------------------')
     print('TRAINING COMPLETE')
     print('------------------')
 
     return train_losses, val_losses
-
-# Define RMSE calculation function
-def calculate_rmse(outputs, targets):
-    return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
 def inference(model, test_loader):
 
@@ -345,15 +336,11 @@ def inference(model, test_loader):
             outputs = model(inputs)
             predictions.append(outputs.cpu().numpy())
             loss = criterion(outputs, targets)
-            rmse = calculate_rmse(outputs, targets)
             # print (rmse)
-            rmse_loss.append(rmse.cpu().numpy())
+            rmse_loss.append(loss.cpu().numpy())
             total_loss += loss.item()
-            total_rmse += rmse.item()
         avg_loss = total_loss / len(test_loader)
-        avg_rmse = total_rmse / len(test_loader)
         print(f'Average Test Loss: {avg_loss}')
-        print(f'Average Test RMSE: {avg_rmse}')
 
     print ('Mean RMSE:', np.mean(rmse_loss))
     print ('Std RMSE:', np.std(rmse_loss))
