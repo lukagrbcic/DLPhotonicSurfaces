@@ -91,6 +91,19 @@ class tandem_model():
 
 
     def train(self, dataset_name, alpha=0):
+
+        def criterion(emissivity_preds, emissivity_targets,
+            parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard_loss'):
+            if loss == 'standard_loss':
+                out = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                return out
+            else:
+                emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
+                # print('parameter preds shape: ', parameter_preds.shape)
+                # print('parameter targets shape: ', parameter_targets.shape)
+                laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
+
+            return laser_param_term + lambda_val*emissivity_term
         
         print('')
         print('------------------')
@@ -109,45 +122,83 @@ class tandem_model():
         train_loader = self.get_torch_dataloader((X_train, y_train))
         val_loader = self.get_torch_dataloader((X_val, y_val))
 
+        ### load the forward DNN 
 
-        ### load the forward DNN and set it to eval mode so its not experiencing backprop
-        ## 
+
+        ##############################
+        ###### SETTING UP FORWARD DNN
+        ##############################
         forward = self.forward_architecture
 
         # we are loading a pretrained forward_DNN
         if self.forward_DNN is not None:
-            if self.forward_DNN_dataset == 'airfoil_re_1_3' or self.forward_DNN_dataset == 'airfoil_re_3_6':
-                model_path = f'forwardDNN/{self.dataset_name}_forward_DNN.pkl'
-                forward_DNN = joblib.load(model_path)
-                print(f'Loading pretrained XGBRegressor pretrained on {self.forward_DNN_dataset}')
-            else:
-                forward.load_state_dict(torch.load(self.forward_DNN[0]))
-                print(f'Loading pretrained forward_DNN on {self.forward_DNN_dataset}')
+            forward.load_state_dict(torch.load(self.forward_DNN[0]))
+            # if we have a hot started forward DNN
+            if self.forward_DNN_hot_start is not None:
+                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with hot start on {self.forward_DNN_hot_start}')
+            elif:
+                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
         else:
             print('Initializing forward_DNN from scratch')
-        forward.eval()
 
+        forward.eval()
+        ### deactivating gradients for forward DNN so it's not experiencing backprop
         for param in forward.parameters():
             param.requires_grad = False
+
+
+        ##############################
+        ###### SETTING UP INVERSE DNN
+        ##############################
         
         # load the inverse model, which will be in train mode default
         inverse = self.inverse_architecture
 
-        def criterion(emissivity_preds, emissivity_targets,
-            parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard_loss'):
-            if loss == 'standard_loss':
-                out = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                return out
-            else:
-                emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                # print('parameter preds shape: ', parameter_preds.shape)
-                # print('parameter targets shape: ', parameter_targets.shape)
-                laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
-
-            return laser_param_term + lambda_val*emissivity_term
 
         if self.inverse_DNN_path is not None:
-            inverse.load_state_dict(torch.load(self.inverse_DNN_path))
+            ## we are doing transfer learning
+            
+            hot_start_model = self.inverse_architecture
+
+            hot_start_model.load_state_dict(torch.load(self.hot_start_model_path))
+
+            hot_start_dataset = self.hot_start_model_path.split('/')[1].split('_')[0].split('_')[0]
+            print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
+
+            # doing the layer transfer
+            if args.num_layers_to_transfer == 1:
+                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+
+            elif args.num_layers_to_transfer == 2:
+                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+                model.linear2.load_state_dict(hot_start_model.linear2.state_dict())
+
+            count = 0
+            for p in model.parameters():
+                if count < args.num_layers_to_transfer*2:
+                    p.requires_grad = False
+                count += 1
+
+            ### verifying that transfer done properly
+
+            i = 0
+            for key in model.state_dict().keys():
+                if i < 8:
+                    if i < args.num_layers_to_transfer*2:
+                        # print(model.state_dict()[key])
+                        # print(hot_start_model.state_dict()[key])
+                        assert torch.all(torch.eq(model.state_dict()[key], hot_start_model.state_dict()[key])).item()
+                    else:
+                        # print(model.state_dict()[key])
+                        # print(hot_start_model.state_dict()[key])
+                        # print(torch.all(torch.ne(model.state_dict()[key], hot_start_model.state_dict()[key])))
+                        if model.state_dict()[key].ndim == 1:
+                            assert model.state_dict()[key][0] != hot_start_model.state_dict()[key][0]
+                        else:
+                            assert model.state_dict()[key][0,0] != hot_start_model.state_dict()[key][0,0]
+                else:
+                    break
+                i += 1
             print(f'Loading inverse_DNN pretrained on {self.inverse_DNN_dataset}')
             inverse = self.freeze_layers(inverse, num_layers_to_freeze=self.num_inverse_layers_frozen)
         else:
@@ -283,9 +334,13 @@ class tandem_model():
         forward = self.forward_architecture
         inverse = self.inverse_architecture
 
-        forward_path = f'forwardDNN/{self.dataset_name}_forward_DNN.pth'
-        forward.load_state_dict(torch.load(forward_path))
-        print(f'Loaded forward DNN pretrained on {self.forward_DNN_dataset}')
+        if self.forward_DNN is not None:
+            forward.load_state_dict(torch.load(self.forward_DNN[0]))
+            # if we have a hot started forward DNN
+            if self.forward_DNN_hot_start is not None:
+                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with hot start on {self.forward_DNN_hot_start}')
+            elif:
+                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
 
         if self.configuration == 'transfer_learning':
             print('')
@@ -294,6 +349,7 @@ class tandem_model():
         else: # standard configuration
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_DNN.pth'
             inverse.load_state_dict(torch.load(inverse_path))
+
 
         forward.eval()
         inverse.eval()
@@ -333,8 +389,6 @@ class tandem_model():
         print('------------------')
         print('INFERENCE COMPLETE')
         print('------------------')
-
-
 
         return emissivity_predictions, laser_params_predictions, rmse_loss, np.mean(rmse_loss)
         

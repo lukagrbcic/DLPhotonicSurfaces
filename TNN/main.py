@@ -138,9 +138,12 @@ def main():
     scaler = joblib.load(forward_scaler_path)
     print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
 
-    if 
-    forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
-    print(f"Forward DNN selected is that which was trained on {args.forward_DNN_dataset}")
+    if args.forward_DNN_hot_start:
+        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_with_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
+        print(f"Forward DNN was pretrained trained on {args.forward_DNN_dataset} and hot started on {args.forward_DNN_hot_start_dataset}")
+    else:
+        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
+        print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with no hot start")
     forward_DNN = (forward_DNN_path, scaler)
 
     # no transfer learning configuration, inverse DNN weights initialized from scratch
