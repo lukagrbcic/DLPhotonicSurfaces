@@ -7,15 +7,34 @@ conda activate dnn_env
 ### TRAIN INVERSE DNNS
 ###############
 
-# ### inconel inverse will be trained and saved
-python main.py standard inconel inconel 
+########################################################
+# STANDARD CONFIG: NO TRANSFER LEARNING FOR INVERSE DNN
+########################################################
 
-# ### stainless steel inverse will be trained and saved
-python main.py standard stainless_steel stainless_steel
+### for inconel task: training from scratch an inverse DNN with a
+### forward DNN trained from SCRATCH on inconel
+
+python main.py standard inconel --mode train
+
+### For inconel task: training from scratch an inverse DNN with a 
+### forward DNN (trained on inconel task) that was hot started on stainless steel
+python main.py standard inconel inconel True --forward_DNN_hot_start_dataset stainless_steel --mode train
+
+### for stainless steel task: training from scratch an inverse DNN with a
+### forward DNN trained from SCRATCH on stainless steel
+
+### For inconel task: training from scratch an inverse DNN with a 
+### forward DNN (trained on inconel task) that was hot started on stainless steel
+python main.py standard stainless_steel stainless_steel True --forward_DNN_hot_start_dataset inconel --mode train 
+
 
 ###############
 ### TL Experiments
 ###############
+
+
+python main.py transfer_learning inconel inconel True --forward_DNN_hot_start_dataset stainless_steel \
+    --inverse_DNN_dataset stainless_steel --mode train --num_inverse_layers_to_transfer 1
 
 # Transfer learning experiments on Inconel
 python main.py transfer_learning inconel stainless_steel

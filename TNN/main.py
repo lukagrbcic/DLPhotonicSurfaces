@@ -70,7 +70,7 @@ def main():
     )
 
     parser.add_argument(
-        '--num_inverse_layers_frozen',
+        '--num_inverse_layers_to_transfer',
         type=int,
         default=0,
         help='enter how many layer of the inverse DNN should be frozen in the TL configuration'
