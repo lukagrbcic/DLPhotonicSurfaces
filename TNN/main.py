@@ -175,60 +175,41 @@ def main():
 
         print('')
         print('--------------------')
-        print('Transfer learning configuration')
+        print('Transfer learning configuration -- we hot start the inverse DNN weights')
         print(f'TASK: {args.dataset_name} dataset')
         
         forward_pretrain = 'from scratch'
         if args.forward_DNN_hot_start:
             forward_pretrain = args.forward_DNN_hot_start_dataset
-            print(f'Forward DNN hot started with {forward_pretrain}')
+            print(f'Forward DNN weights were hot started with {forward_pretrain}')
         else:
-            print('Forward DNN trained from scratch')
+            print(f'Forward DNN weights were trained from scratch on {args.forward_DNN_dataset}')
 
         
 
-        print(f'inverseDNN dataset: {args.inverse_DNN_dataset_hot_start}')
-        print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN frozen')
+        print(f'Inverse DNN weights were hot started with {args.inverse_DNN_dataset_hot_start}')
+        print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN will be transferred and frozen')
         print('--------------------')
         print('')
 
         time.sleep(2)
 
 
+        #### forward has to map the correct task
         assert args.dataset_name == args.forward_DNN_dataset
 
         if args.forward_DNN_hot_start:
             ## make sure we have hot started with the dataset that isn't the one we're currently training on
             assert args.forward_DNN_dataset != args.forward_DNN_hot_start_dataset
 
-        # make sure that we are actually doing transfer learning
-
         if args.configuration == 'standard':
             ## in standard configuration, the inverse DNN should be trained from scratch
             assert args.inverse_DNN_hot_start_dataset == None
-        else:
+        elif args.configuration == 'transfer_learning':
             ## if not, there should be a hot start dataset
             assert args.inverse_DNN_hot_start_dataset != None
             ## it should not be the same one we are doing the task on
             assert args.dataset_name != args.inverse_DNN_hot_start_dataset
-
-
-
-        # configuration 1: dataset and forward DNN dataset are the SAME and inverse DNN dataset is DIFFERENT
-        if args.dataset_name == args.forward_DNN_dataset:
-            assert args.inverse_DNN_dataset != args.forward_DNN_dataset
-
-        # configuration 2: dataset and forward DNN dataset are DIFFERENT and inverse DNN trained from scratch
-        # configuration 3: dataset and forward DNN dataset are DIFFERERENT and forward and inverse DNN datasets are the SAME
-        if args.dataset_name != args.forward_DNN_dataset:
-            assert (args.inverse_DNN_dataset == None) or (args.forward_DNN_dataset == args.inverse_DNN_dataset)
-
-        if args.inverse_DNN_dataset != None:
-            inverse_DNN = f'inverseDNN/{args.inverse_DNN_dataset}_inverse_DNN.pth'
-            print(f"Inverse DNN selected is that which was trained on {args.inverse_DNN_dataset}")
-        else:
-            inverse_DNN=args.inverse_DNN_dataset
-            print('Inverse DNN weights will be initialized from scratch')
 
     max_epochs = 1000
     verbose = True
