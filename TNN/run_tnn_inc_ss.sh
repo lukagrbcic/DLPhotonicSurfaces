@@ -2,16 +2,6 @@
 
 source /home/vpatro/anaconda3/etc/profile.d/conda.sh
 conda activate dnn_env
-###############
-### TRAIN FORWARD DNNS
-###############
-
-### INCONEL DATA
-# python train_forward.py inconel configs/forward/forward.yaml 
-
-### STAINLESS STEEL DATA
-# python train_forward.py stainless_steel configs/forward/forward.yaml 
-
 
 ###############
 ### TRAIN INVERSE DNNS

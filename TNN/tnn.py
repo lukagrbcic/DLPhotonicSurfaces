@@ -24,7 +24,7 @@ class tandem_model():
                 train_val_split_seed,
                 forward_architecture,
                 inverse_architecture,
-                num_inverse_layers_frozen,
+                num_inverse_layers_to_transfer,
                 epochs,
                 device,
                 dataset_name,
@@ -45,7 +45,7 @@ class tandem_model():
         self.train_val_split_seed = train_val_split_seed
         self.forward_architecture = forward_architecture #forward DNN architecture
         self.inverse_architecture = inverse_architecture #inverse DNN architecutre
-        self.num_inverse_layers_frozen = num_inverse_layers_frozen
+        self.num_inverse_layers_to_transfer = num_inverse_layers_to_transfer
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
@@ -151,56 +151,66 @@ class tandem_model():
         ###### SETTING UP INVERSE DNN
         ##############################
         
-        # load the inverse model, which will be in train mode default
+        # load the inverse model, which will have randomly initialized weights to begin with
         inverse = self.inverse_architecture
-
 
         if self.inverse_DNN_path is not None:
             ## we are doing transfer learning
             
-            hot_start_model = self.inverse_architecture
+            # loading the entire pretrained model to prepare for selective weight transfer
+            pretrained_model = self.inverse_architecture
+            pretrained_model.load_state_dict(torch.load(self.hot_start_model_path))
 
-            hot_start_model.load_state_dict(torch.load(self.hot_start_model_path))
-
-            hot_start_dataset = self.hot_start_model_path.split('/')[1].split('_')[0].split('_')[0]
-            print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
+            inverse_DNN_dataset = self.inverse_DNN_dataset
+            print(f'TRANSFERING {inverse_DNN_dataset} weights for {self.dataset_name} task')
 
             # doing the layer transfer
-            if args.num_layers_to_transfer == 1:
-                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+            if self.num_layers_to_transfer == 1:
+                inverse.linear1.load_state_dict(pretrained_model.linear1.state_dict())
 
-            elif args.num_layers_to_transfer == 2:
-                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
-                model.linear2.load_state_dict(hot_start_model.linear2.state_dict())
+            elif self.num_layers_to_transfer == 2:
+                inverse.linear1.load_state_dict(pretrained_model.linear1.state_dict())
+                inverse.linear2.load_state_dict(pretrained_model.linear2.state_dict())
 
+            ### disabling gradient calculation to freeze selective layers
             count = 0
-            for p in model.parameters():
-                if count < args.num_layers_to_transfer*2:
+            for p in inverse.parameters():
+                if count < self.num_layers_to_transfer*2:
                     p.requires_grad = False
                 count += 1
 
             ### verifying that transfer done properly
 
             i = 0
-            for key in model.state_dict().keys():
+            for key in inverse.state_dict().keys():
                 if i < 8:
-                    if i < args.num_layers_to_transfer*2:
-                        # print(model.state_dict()[key])
-                        # print(hot_start_model.state_dict()[key])
-                        assert torch.all(torch.eq(model.state_dict()[key], hot_start_model.state_dict()[key])).item()
+                    if i < self.num_layers_to_transfer*2:
+                        assert torch.all(torch.eq(inverse.state_dict()[key], pretrained_model.state_dict()[key])).item()
                     else:
-                        # print(model.state_dict()[key])
-                        # print(hot_start_model.state_dict()[key])
-                        # print(torch.all(torch.ne(model.state_dict()[key], hot_start_model.state_dict()[key])))
-                        if model.state_dict()[key].ndim == 1:
-                            assert model.state_dict()[key][0] != hot_start_model.state_dict()[key][0]
+                        if inverse.state_dict()[key].ndim == 1:
+                            assert inverse.state_dict()[key][0] != pretrained_model.state_dict()[key][0]
                         else:
-                            assert model.state_dict()[key][0,0] != hot_start_model.state_dict()[key][0,0]
+                            assert inverse.state_dict()[key][0,0] != pretrained_model.state_dict()[key][0,0]
                 else:
                     break
                 i += 1
-            print(f'Loading inverse_DNN pretrained on {self.inverse_DNN_dataset}')
-            inverse = self.freeze_layers(inverse, num_layers_to_freeze=self.num_inverse_layers_frozen)
+
+            print()
+            print(f'FREEZING {self.num_inverse_layers_to_transfer} LAYERS')
+
+            count = 0
+            for p in inverse.parameters():
+                if count < self.num_layers_to_transfer*2:
+                    assert p.requires_grad == False
+                else:
+                    assert p.requires_grad == True
+                count += 1
+
+            print('TRANSFER COMPLETE')
+            print()
+
+            for p in inverse.parameters():
+                print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
         else:
             print('Initializing inverse_DNN from scratch')
 
