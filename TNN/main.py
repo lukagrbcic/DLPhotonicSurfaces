@@ -218,7 +218,6 @@ def main():
 
     print('DEVICE: ', device)
 
-
     if args.mode == 'train':
 
         train_losses = []
@@ -237,11 +236,13 @@ def main():
                             train_val_split_seed=random.randint(0,100),
                             forward_architecture=forward_architecture, 
                             inverse_architecture=inverse_architecture,
-                            num_inverse_layers_frozen=args.num_inverse_layers_frozen,
+                            num_inverse_layers_to_transfer=args.num_inverse_layers_to_transfer,
                             epochs=max_epochs, 
                             device=device, 
                             dataset_name=args.dataset_name,
                             forward_DNN_dataset=args.forward_DNN_dataset,
+                            forward_DNN_hot_start = args.forward_DNN_hot_start,
+                            foreard_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset,
                             inverse_DNN_dataset=args.inverse_DNN_dataset,
                             loss_type=loss_type,
                             forward_DNN=forward_DNN,

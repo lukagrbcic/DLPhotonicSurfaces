@@ -30,6 +30,7 @@ class tandem_model():
                 dataset_name,
                 forward_DNN_dataset,
                 forward_DNN_hot_start,
+                forward_DNN_hot_start_dataset,
                 inverse_DNN_dataset,
                 loss_type,
                 batch_size = 64,
@@ -49,7 +50,7 @@ class tandem_model():
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
-        self.forward_DNN_hot_start = forward_DNN_hot_start
+        self.forward_DNN_hot_start_dataset = forward_DNN_hot_start_dataset
         self.inverse_DNN_dataset = inverse_DNN_dataset
         self.batch_size = batch_size
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
@@ -134,7 +135,7 @@ class tandem_model():
         if self.forward_DNN is not None:
             forward.load_state_dict(torch.load(self.forward_DNN[0]))
             # if we have a hot started forward DNN
-            if self.forward_DNN_hot_start is not None:
+            if self.forward_DNN_hot_start:
                 print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with hot start on {self.forward_DNN_hot_start}')
             elif:
                 print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
