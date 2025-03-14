@@ -25,20 +25,21 @@ def main():
         'configuration',
         type=str,
         default='standard',
-        help='enter whether you are performing the standard TNN configuration or Transfer Learning'
+        help='enter whether you are performing the standard TNN configuration (learning inverse from scratch) \
+             or Transfer Learning (starting the inverse DNN off with pretrained weights)'
     )
 
     parser.add_argument(
         'dataset_name',
         type=str,
-        help='enter the name of the dataset'
+        help='enter the name of the dataset we are doing predictive tasks on'
     )
 
     parser.add_argument(
         'forward_DNN_dataset',
         type=str,
         default=None,
-        help='enter the name of the dataset the forward DNN was trained on'
+        help='enter the name of the dataset the forward DNN was trained on (the task)'
     )
 
     parser.add_argument(
@@ -52,14 +53,14 @@ def main():
         '--forward_DNN_hot_start_dataset',
         type=str,
         default=None,
-        help='enter the name of the dataset the forward DNN was hot started with'
+        help='enter the name of the dataset the forward DNN was hot started with to get trained on the task'
     )
 
     parser.add_argument(
-        '--inverse_DNN_dataset',
+        '--inverse_DNN_hot_start_dataset',
         type=str,
         default=None,
-        help='enter the name of the dataset the inverse DNN was trained on'
+        help='enter the name of the dataset we will hot start the inverse DNN with'
     )
 
     parser.add_argument(
@@ -73,7 +74,7 @@ def main():
         '--num_inverse_layers_to_transfer',
         type=int,
         default=0,
-        help='enter how many layer of the inverse DNN should be frozen in the TL configuration'
+        help='enter how many layer of the inverse DNN should be transferred and frozen in the TL configuration'
     )
 
     args = parser.parse_args()
@@ -130,18 +131,20 @@ def main():
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
 
-    #load the pretrained forward (with minmax scaler) and inverse DNN if they're specified as arguments
-
-    ### if we don't give a forward_DNN_dataset (ie don't want to load a pretrained forward DNN), forward_DNN will be set to None in the tnn
+    ############################
+    ####### LOADING FORWARD DNN
+    ############################
     
     forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
     scaler = joblib.load(forward_scaler_path)
     print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
 
     if args.forward_DNN_hot_start:
+        ### either load the forward DNN that was hot started
         forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_with_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
-        print(f"Forward DNN was pretrained trained on {args.forward_DNN_dataset} and hot started on {args.forward_DNN_hot_start_dataset}")
+        print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} and hot started with {args.forward_DNN_hot_start_dataset}")
     else:
+        ### or use the one that was trained from scratch
         forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
         print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with no hot start")
     forward_DNN = (forward_DNN_path, scaler)
@@ -150,7 +153,7 @@ def main():
     if args.configuration == 'standard':
         print('')
         print('--------------------')
-        print('Standard configuration -- no transfer learning')
+        print('Standard configuration -- inverse DNN weights will be learned from scratch')
         print('--------------------')
         print('')
 
@@ -166,19 +169,50 @@ def main():
     else: # transfer learning configuration
         ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
 
+        forward_pretrain = 'from scratch'
+        if args.forward_DNN_hot_start:
+            forward_pretrain = args.forward_DNN_hot_start_dataset
+
         print('')
         print('--------------------')
         print('Transfer learning configuration')
-        print(f'dataset: ', args.dataset_name)
-        print(f'forwardDNN dataset: ', args.forward_DNN_dataset)
-        print(f'inverseDNN dataset: {args.inverse_DNN_dataset}')
-        print(f'{int(args.num_inverse_layers_frozen/2)} layers of inverse DNN frozen')
+        print(f'TASK: {args.dataset_name} dataset')
+        
+        forward_pretrain = 'from scratch'
+        if args.forward_DNN_hot_start:
+            forward_pretrain = args.forward_DNN_hot_start_dataset
+            print(f'Forward DNN hot started with {forward_pretrain}')
+        else:
+            print('Forward DNN trained from scratch')
+
+        
+
+        print(f'inverseDNN dataset: {args.inverse_DNN_dataset_hot_start}')
+        print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN frozen')
         print('--------------------')
         print('')
 
         time.sleep(2)
 
+
+        assert args.dataset_name == args.forward_DNN_dataset
+
+        if args.forward_DNN_hot_start:
+            ## make sure we have hot started with the dataset that isn't the one we're currently training on
+            assert args.forward_DNN_dataset != args.forward_DNN_hot_start_dataset
+
         # make sure that we are actually doing transfer learning
+
+        if args.configuration == 'standard':
+            ## in standard configuration, the inverse DNN should be trained from scratch
+            assert args.inverse_DNN_hot_start_dataset == None
+        else:
+            ## if not, there should be a hot start dataset
+            assert args.inverse_DNN_hot_start_dataset != None
+            ## it should not be the same one we are doing the task on
+            assert args.dataset_name != args.inverse_DNN_hot_start_dataset
+
+
 
         # configuration 1: dataset and forward DNN dataset are the SAME and inverse DNN dataset is DIFFERENT
         if args.dataset_name == args.forward_DNN_dataset:
