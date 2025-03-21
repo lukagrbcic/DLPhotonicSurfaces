@@ -115,7 +115,7 @@ def main():
             hot_start_model = invfow.forwardMLP(input_size, output_size).to(device) 
             hot_start_model.load_state_dict(torch.load(args.hot_start_model_path))
 
-            hot_start_dataset = args.hot_start_model_path.split('_')[0]
+            hot_start_dataset = args.hot_start_model_path.split('/')[1].split('_')[0]
             hot_start_dataset = hot_start_dataset + '_steel' if hot_start_dataset == 'stainless' else hot_start_dataset
             print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
 
@@ -311,7 +311,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
     ### saving mechanism
     if setting == 'standard':
         torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_forward_DNN.pth')
-    else:
+    elif setting == 'transfer_learning':
         torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_with_{hot_start_dataset_name}_hot_start_forward_DNN.pth')
 
     print('------------------')
