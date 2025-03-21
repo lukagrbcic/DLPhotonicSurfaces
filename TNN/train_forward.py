@@ -119,6 +119,8 @@ def main():
             hot_start_dataset = hot_start_dataset + '_steel' if hot_start_dataset == 'stainless' else hot_start_dataset
             print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
 
+            assert hot_start_dataset != args.dataset_name
+
             # doing the layer transfer
             if args.num_layers_to_transfer == 1:
                 model.linear1.load_state_dict(hot_start_model.linear1.state_dict())

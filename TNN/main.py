@@ -9,6 +9,7 @@ sys.path.insert(0, 'src')
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 import tnn as tnn
+from load_data import load_data
 
 import argparse
 import pandas as pd
@@ -79,35 +80,7 @@ def main():
 
     args = parser.parse_args()
 
-    #Since it is inverse training, reverse the data inputs
-    if args.dataset_name == 'inconel':
-        train_output_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
-        train_input_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/inconel_data/input_test_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/inconel_data/output_test_data.npy'
-    elif args.dataset_name == 'stainless_steel':
-        train_output_path = '/home/vpatro/TNN_data/ss_data/input_train_data.npy'
-        train_input_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil_re_1_3':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil_re_3_6':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
-
-
-    X_train = np.load(train_input_path)
-    y_train = np.load(train_output_path)
-
-    X_test = np.load(test_input_path)
-    y_test = np.load(test_output_path)
-
+    X_train, y_train, X_test, y_test = load_data(dataset_name=args.dataset_name)
     print('')
     print('--------------------')
     print(f'LOADED {args.dataset_name} DATASET')
@@ -135,86 +108,34 @@ def main():
     ####### LOADING FORWARD DNN
     ############################
     
-    forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
-    scaler = joblib.load(forward_scaler_path)
-    print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
+    from model_check import forward_DNN_check
 
-    if args.forward_DNN_hot_start:
-        ### either load the forward DNN that was hot started
-        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_with_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
-        print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} and hot started with {args.forward_DNN_hot_start_dataset}")
-    else:
-        ### or use the one that was trained from scratch
-        forward_DNN_path = f'forwardDNN/{args.forward_DNN_dataset}_forward_DNN.pth'
-        print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with no hot start")
-    forward_DNN = (forward_DNN_path, scaler)
+    forward_DNN = forward_DNN_check(args)
 
     # no transfer learning configuration, inverse DNN weights initialized from scratch
     if args.configuration == 'standard':
 
-        # the dataset we train on and the pretrained dataset of forward DNN should match, and inverse DNN should be trained from scratch
-        assert args.dataset_name == args.forward_DNN_dataset
-        assert args.inverse_DNN_dataset == None
-        inverse_DNN_dataset=args.inverse_DNN_dataset
-
-        if args.forward_DNN_hot_start:
-            forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset
-            print(f'Forward DNN was hot started with {forward_DNN_hot_start_dataset} weights during its training')
-            print('Forward DNN frozen now')
-        else:
-            print('Forward DNN was trained from scratch')
-            print('Forward DNN frozen now')
-
-        print('')
-        print('--------------------')
-        print('Standard configuration -- inverse DNN weights will be learned from scratch')
-        print('Inverse DNN weights will be initialized from scratch')
-        print(f'TASK: {args.dataset_name} dataset')
-        print('--------------------')
-        print('')
-
+        from model_check import inverse_DNN_standard_config_check
+        inverse_DNN_standard_config_check(args)        
 
         time.sleep(2)
 
     elif args.configuration == 'transfer_learning': # transfer learning configuration
-        ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
-
-        forward_DNN_hot_start_dataset = 'from scratch'
-        if args.forward_DNN_hot_start:
-            forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset
-            print(f'Forward DNN was hot started with {forward_DNN_hot_start_dataset} weights during its training')
-            print('Forward DNN frozen now')
-        else:
-            print('Forward DNN was trained from scratch')
-            print('Forward DNN frozen now')
+        ### if we don't give an inverse_DNN_hot_start_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
             
-        print('')
-        print('--------------------')
-        print('Transfer learning configuration -- we hot start the inverse DNN weights')
-        print(f'TASK: {args.dataset_name} dataset')
-        print(f'Inverse DNN weights were hot started with {args.inverse_DNN_dataset_hot_start}')
-        print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN will be transferred and frozen')
-        print('--------------------')
-        print('')
+        from model_check import inverse_DNN_tl_config_check
+        inverse_DNN_tl_config_check(args)
 
         time.sleep(2)
 
+    ##### GENERAL CHECKS
 
-        #### forward has to map the correct task
-        assert args.dataset_name == args.forward_DNN_dataset
+    #### forward has to map the correct task
+    assert args.dataset_name == args.forward_DNN_dataset
 
-        if args.forward_DNN_hot_start:
-            ## make sure we have hot started with the dataset that isn't the one we're currently training on
-            assert args.forward_DNN_dataset != args.forward_DNN_hot_start_dataset
-
-        if args.configuration == 'standard':
-            ## in standard configuration, the inverse DNN should be trained from scratch
-            assert args.inverse_DNN_hot_start_dataset == None
-        elif args.configuration == 'transfer_learning':
-            ## if not, there should be a hot start dataset
-            assert args.inverse_DNN_hot_start_dataset != None
-            ## it should not be the same one we are doing the task on
-            assert args.dataset_name != args.inverse_DNN_hot_start_dataset
+    if args.forward_DNN_hot_start:
+        ## make sure we have hot started with the dataset that isn't the one we're currently training on
+        assert args.forward_DNN_dataset != args.forward_DNN_hot_start_dataset
 
     max_epochs = 1000
     verbose = True
@@ -247,11 +168,10 @@ def main():
                             dataset_name=args.dataset_name,
                             forward_DNN_dataset=args.forward_DNN_dataset,
                             forward_DNN_hot_start = args.forward_DNN_hot_start,
-                            foreard_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset,
-                            inverse_DNN_dataset=args.inverse_DNN_dataset,
+                            forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset,
+                            inverse_DNN_hot_start_dataset=args.inverse_DNN_hot_start_dataset,
                             loss_type=loss_type,
                             forward_DNN=forward_DNN,
-                            inverse_DNN_path=inverse_DNN,
                             configuration=args.configuration,
                             verbose=verbose)   
 
@@ -289,13 +209,16 @@ def main():
             result_dir = f'results/airfoil/{loss_type}'
 
 
-        inverse_DNN_dataset = args.inverse_DNN_dataset
-        if args.inverse_DNN_dataset == None:
-            inverse_DNN_dataset = 'from_scratch'
+        inverse_DNN_hot_start_dataset = args.inverse_DNN_hot_start_dataset
+        if args.inverse_DNN_hot_start_dataset == None:
+            inverse_DNN_hot_start_dataset = 'from_scratch'
 
-        result_dir = f'{result_dir}/{int(args.num_inverse_layers_frozen/2)}_layers_frozen' if args.inverse_DNN_dataset != None else result_dir
+        result_dir = f'{result_dir}/{int(args.num_inverse_layers_frozen/2)}_layers_frozen' if args.inverse_DNN_hot_start_dataset != None else result_dir
         os.makedirs(result_dir, exist_ok=True)
-        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{args.forward_DNN_dataset}_inverseDNN_{inverse_DNN_dataset}.json'
+        forward_hot_start = 'from_scratch'
+        forward_hot_start = 'hot_start_' + args.forward_DNN_hot_start_dataset if args.forward_DNN_hot_start else forward_hot_start
+        inverse_hot_start = 'hot_start_' + args.inverse_DNN_hot_start_dataset if args.configuration == 'transfer_learning' else 'from_scratch'
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{forward_hot_start}_inverseDNN_{inverse_hot_start}.json'
 
         obj = {'mean train loss': mean_train_loss,
                'mean val loss': mean_val_loss,

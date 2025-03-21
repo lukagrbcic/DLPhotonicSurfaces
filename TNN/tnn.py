@@ -31,11 +31,10 @@ class tandem_model():
                 forward_DNN_dataset,
                 forward_DNN_hot_start,
                 forward_DNN_hot_start_dataset,
-                inverse_DNN_dataset,
+                inverse_DNN_hot_start_dataset,
                 loss_type,
                 batch_size = 64,
                 forward_DNN=None,
-                inverse_DNN_path=None,
                 configuration='standard',
                 verbose=True, 
                 rmse_loss=False,
@@ -50,11 +49,11 @@ class tandem_model():
         self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
+        self.forward_DNN_hot_start = forward_DNN_hot_start
         self.forward_DNN_hot_start_dataset = forward_DNN_hot_start_dataset
-        self.inverse_DNN_dataset = inverse_DNN_dataset
+        self.inverse_DNN_hot_start_dataset = inverse_DNN_hot_start_dataset
         self.batch_size = batch_size
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
-        self.inverse_DNN_path = inverse_DNN_path
         self.verbose = verbose
         self.configuration = configuration
         self.loss_type = loss_type
@@ -130,22 +129,19 @@ class tandem_model():
         ###### SETTING UP FORWARD DNN
         ##############################
         forward = self.forward_architecture
+        forward.load_state_dict(torch.load(self.forward_DNN[0]))
 
-        # we are loading a pretrained forward_DNN
-        if self.forward_DNN is not None:
-            forward.load_state_dict(torch.load(self.forward_DNN[0]))
-            # if we have a hot started forward DNN
-            if self.forward_DNN_hot_start:
-                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with hot start on {self.forward_DNN_hot_start}')
-            elif:
-                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+        if self.forward_DNN_hot_start:
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start}')
         else:
-            print('Initializing forward_DNN from scratch')
+             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
 
         forward.eval()
         ### deactivating gradients for forward DNN so it's not experiencing backprop
         for param in forward.parameters():
             param.requires_grad = False
+
+        print('Forward DNN frozen')
 
 
         ##############################
@@ -155,12 +151,16 @@ class tandem_model():
         # load the inverse model, which will have randomly initialized weights to begin with
         inverse = self.inverse_architecture
 
-        if self.inverse_DNN_path is not None:
+        if self.configuration == 'transfer_learning':
             ## we are doing transfer learning
+            print('---- TRANSFER LEARNING CONFIGURATION ----')
             
             # loading the entire pretrained model to prepare for selective weight transfer
+            forward_hot_start = 'from_scratch'
+            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
+            hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth'
             pretrained_model = self.inverse_architecture
-            pretrained_model.load_state_dict(torch.load(self.hot_start_model_path))
+            pretrained_model.load_state_dict(torch.load(hot_start_model_path))
 
             inverse_DNN_dataset = self.inverse_DNN_dataset
             print(f'TRANSFERING {inverse_DNN_dataset} weights for {self.dataset_name} task')
@@ -212,8 +212,9 @@ class tandem_model():
 
             for p in inverse.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
-        else:
+        elif self.configuration == 'standard':
             print('Initializing inverse_DNN from scratch')
+        
 
 
         optimizer = optim.Adam(inverse.parameters(), lr=0.0004) #0.0002
@@ -297,12 +298,15 @@ class tandem_model():
 
         ### saving mechanism
         if self.configuration == 'transfer_learning':
-            inv_dataset_descriptor = 'from_scratch' if self.inverse_DNN_path == 'None' else self.inverse_DNN_dataset
-            path = f'transfer_learning_models/{self.dataset_name}/inverse_{inv_dataset_descriptor}_forward_{self.forward_DNN_dataset}.pth'
+            forward_hot_start = 'from_scratch'
+            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
+            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_dataset}_forward_{forward_hot_start}.pth'
             torch.save(inverse.state_dict(), path)
             print('Saved model')
-        else:
-            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_DNN.pth')
+        elif self.configuration == 'standard':
+            forward_hot_start = 'from_scratch'
+            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
+            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth')
             self.inverse_DNN = inverse
             print('Saved model')
 
@@ -345,17 +349,23 @@ class tandem_model():
         forward = self.forward_architecture
         inverse = self.inverse_architecture
 
-        if self.forward_DNN is not None:
-            forward.load_state_dict(torch.load(self.forward_DNN[0]))
-            # if we have a hot started forward DNN
-            if self.forward_DNN_hot_start is not None:
-                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with hot start on {self.forward_DNN_hot_start}')
-            elif:
-                print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+        forward.load_state_dict(torch.load(self.forward_DNN[0]))
+
+        if self.forward_DNN_hot_start:
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start}')
+        else:
+             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+
+        forward.eval()
+        ### deactivating gradients for forward DNN so it's not experiencing backprop
+        for param in forward.parameters():
+            param.requires_grad = False
+
+        print('Forward DNN frozen')
 
         if self.configuration == 'transfer_learning':
             print('')
-            print(f'Transfer learning -- loading inverse DNN pretrained on {self.inverse_DNN_dataset} and trained by forward DNN pretrained on {self.forward_DNN_dataset}')
+            print(f'Transfer learning -- loading inverse DNN pretrained on {self.inverse_DNN_dataset} with hot start on {}')
             inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{self.forward_DNN_dataset}.pth'
         else: # standard configuration
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_DNN.pth'
