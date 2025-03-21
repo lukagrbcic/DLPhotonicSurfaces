@@ -39,7 +39,7 @@ def main():
         'forward_DNN_dataset',
         type=str,
         default=None,
-        help='enter the name of the dataset the forward DNN was trained on (the task)'
+        help='enter the name of the dataset (the task) the forward DNN was trained on'
     )
 
     parser.add_argument(

@@ -34,12 +34,14 @@ def main():
     parser.add_argument(
         'dataset_name',
         type=str,
-        help='enter the name of the dataset to be processed'
+        help='enter the name of the dataset to be trained on'
     )
     parser.add_argument(
         'configuration',
         type=str,
-        default='standard'
+        default='standard',
+        help='enter whether we are doing the standard configuration (training from scratch) \
+         or hot starting our forward DNN'
     )
     parser.add_argument(
         'config_file_path',
@@ -50,7 +52,7 @@ def main():
         '--mode',
         type=str,
         default = 'train',
-        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
+        help = 'enter train to do training followed by inference and enter inference to do inference on a saved model'
     )
     parser.add_argument(
         '--hot_start_model_path',
@@ -91,17 +93,17 @@ def main():
     train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
     if args.mode == 'train':
+        print('Performing training followed by inference')
+        print('\n')
 
         ### we are training a forward DNN from scratch
         if args.configuration == 'standard':
-            print('Performing training followed by inference')
-            print('\n')
             model = invfow.forwardMLP(input_size, output_size).to(device)  
             hot_start_dataset = None          
             print(model.model)
         
-        ### we are doing transfer learning
-        else:
+        ### we are hot starting
+        elif args.configuration == 'transfer_learning':
             print()
             print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
             # random weights
@@ -109,11 +111,12 @@ def main():
             print(model.model)
             print()
 
-            # hot start weights
+            # load hot start weights into model
             hot_start_model = invfow.forwardMLP(input_size, output_size).to(device) 
             hot_start_model.load_state_dict(torch.load(args.hot_start_model_path))
 
-            hot_start_dataset = args.hot_start_model_path.split('/')[1].split('_')[0].split('_')[0]
+            hot_start_dataset = args.hot_start_model_path.split('_')[0]
+            hot_start_dataset = hot_start_dataset + '_steel' if hot_start_dataset == 'stainless' else hot_start_dataset
             print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
 
             # doing the layer transfer
@@ -136,15 +139,13 @@ def main():
             for key in model.state_dict().keys():
                 if i < 8:
                     if i < args.num_layers_to_transfer*2:
-                        # print(model.state_dict()[key])
-                        # print(hot_start_model.state_dict()[key])
+                        ## verifying transferred layers are the same
                         assert torch.all(torch.eq(model.state_dict()[key], hot_start_model.state_dict()[key])).item()
                     else:
-                        # print(model.state_dict()[key])
-                        # print(hot_start_model.state_dict()[key])
-                        # print(torch.all(torch.ne(model.state_dict()[key], hot_start_model.state_dict()[key])))
+                        ## ReLU layer
                         if model.state_dict()[key].ndim == 1:
                             assert model.state_dict()[key][0] != hot_start_model.state_dict()[key][0]
+                        ## linear layer
                         else:
                             assert model.state_dict()[key][0,0] != hot_start_model.state_dict()[key][0,0]
                 else:
