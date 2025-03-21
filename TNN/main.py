@@ -53,7 +53,7 @@ def main():
         '--forward_DNN_hot_start_dataset',
         type=str,
         default=None,
-        help='enter the name of the dataset the forward DNN was hot started with to get trained on the task'
+        help='enter the name of the dataset the forward DNN was hot started with'
     )
 
     parser.add_argument(
@@ -151,42 +151,47 @@ def main():
 
     # no transfer learning configuration, inverse DNN weights initialized from scratch
     if args.configuration == 'standard':
-        print('')
-        print('--------------------')
-        print('Standard configuration -- inverse DNN weights will be learned from scratch')
-        print('--------------------')
-        print('')
 
         # the dataset we train on and the pretrained dataset of forward DNN should match, and inverse DNN should be trained from scratch
         assert args.dataset_name == args.forward_DNN_dataset
         assert args.inverse_DNN_dataset == None
-        inverse_DNN=args.inverse_DNN_dataset
+        inverse_DNN_dataset=args.inverse_DNN_dataset
 
+        if args.forward_DNN_hot_start:
+            forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset
+            print(f'Forward DNN was hot started with {forward_DNN_hot_start_dataset} weights during its training')
+            print('Forward DNN frozen now')
+        else:
+            print('Forward DNN was trained from scratch')
+            print('Forward DNN frozen now')
+
+        print('')
+        print('--------------------')
+        print('Standard configuration -- inverse DNN weights will be learned from scratch')
         print('Inverse DNN weights will be initialized from scratch')
+        print(f'TASK: {args.dataset_name} dataset')
+        print('--------------------')
+        print('')
+
 
         time.sleep(2)
 
-    else: # transfer learning configuration
+    elif args.configuration == 'transfer_learning': # transfer learning configuration
         ### if we don't give an inverse_DNN_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
 
-        forward_pretrain = 'from scratch'
+        forward_DNN_hot_start_dataset = 'from scratch'
         if args.forward_DNN_hot_start:
-            forward_pretrain = args.forward_DNN_hot_start_dataset
-
+            forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset
+            print(f'Forward DNN was hot started with {forward_DNN_hot_start_dataset} weights during its training')
+            print('Forward DNN frozen now')
+        else:
+            print('Forward DNN was trained from scratch')
+            print('Forward DNN frozen now')
+            
         print('')
         print('--------------------')
         print('Transfer learning configuration -- we hot start the inverse DNN weights')
         print(f'TASK: {args.dataset_name} dataset')
-        
-        forward_pretrain = 'from scratch'
-        if args.forward_DNN_hot_start:
-            forward_pretrain = args.forward_DNN_hot_start_dataset
-            print(f'Forward DNN weights were hot started with {forward_pretrain}')
-        else:
-            print(f'Forward DNN weights were trained from scratch on {args.forward_DNN_dataset}')
-
-        
-
         print(f'Inverse DNN weights were hot started with {args.inverse_DNN_dataset_hot_start}')
         print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN will be transferred and frozen')
         print('--------------------')

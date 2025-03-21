@@ -3,4 +3,4 @@
 model_params:
   learning_rate: 0.01
   n_epochs: 1000
-  early_stopping_patience: 5
+  early_stopping_patience: 7
