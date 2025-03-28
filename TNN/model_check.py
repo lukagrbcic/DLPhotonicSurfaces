@@ -24,12 +24,11 @@ def forward_DNN_check(args):
 def inverse_DNN_standard_config_check(args):
     
     assert args.dataset_name == args.forward_DNN_dataset
-    assert args.inverse_DNN_hot_start_dataset == None
 
     print('\n -------------------- \n')
     print(f'TASK: {args.dataset_name} dataset')
     print('Standard configuration -- inverse DNN weights will be learned from scratch')
-    assert args.inverse_DNN_hot_start_dataset == None
+    assert args.inverse_DNN_hot_start_dataset == 'from_scratch'
     print('\n -------------------- \n')
 
 def inverse_DNN_tl_config_check(args):

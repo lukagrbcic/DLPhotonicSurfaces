@@ -352,7 +352,7 @@ class tandem_model():
             print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
             inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{self.forward_DNN_dataset}.pth'
         else: # standard configuration
-            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_DNN.pth'
+            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_{self.inverse_DNN_hot_start_dataset}_forward_{self.forward_DNN_hot_start_dataset}.pth'
             inverse.load_state_dict(torch.load(inverse_path))
 
 
