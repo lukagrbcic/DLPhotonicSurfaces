@@ -22,70 +22,46 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        'configuration',
-        type=str,
-        default='standard',
+    parser.add_argument('configuration',type=str,
         help='enter whether you are performing the standard TNN configuration (learning inverse from scratch) \
-             or Transfer Learning (starting the inverse DNN off with pretrained weights)'
-    )
+             or Transfer Learning (starting the inverse DNN off with pretrained weights)')
 
-    parser.add_argument(
-        'dataset_name',
-        type=str,
-        help='enter the name of the dataset we are doing predictive tasks on'
-    )
+    parser.add_argument('dataset_name', type=str, 
+        help='enter the name of the dataset we are doing predictive tasks on')
 
-    parser.add_argument(
-        'forward_DNN_dataset',
-        type=str,
-        default=None,
-        help='enter the name of the dataset (the task) the forward DNN was trained on'
-    )
+    parser.add_argument('forward_DNN_dataset', type=str,
+        help='enter the name of the dataset (the task) the forward DNN was trained on')
 
-    parser.add_argument(
-        'forward_DNN_hot_start',
-        type=bool,
-        default=False,
-        help = 'enter whether the forward DNN has been hot started or not'
-    )
+    parser.add_argument('--forward_DNN_hot_start', dest='forward_DNN_hot_start', action='store_true',
+        help = 'forward DNN has been hot started')
 
-    parser.add_argument(
-        '--forward_DNN_hot_start_dataset',
-        type=str,
-        default=None,
-        help='enter the name of the dataset the forward DNN was hot started with'
-    )
+    parser.add_argument('--forward_DNN_from_scratch', dest='forward_DNN_hot_start', action='store_false',
+        help='forward DNN has not been hot started and was trained from scratch')
 
-    parser.add_argument(
-        '--inverse_DNN_hot_start_dataset',
-        type=str,
-        default=None,
-        help='enter the name of the dataset we will hot start the inverse DNN with'
-    )
+    parser.add_argument('--forward_DNN_hot_start_dataset', type=str, default='from_scratch',
+        help='enter the name of the dataset the forward DNN was hot started with')
 
-    parser.add_argument(
-        '--mode',
-        type=str,
-        default = 'train',
-        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model'
-    )
+    parser.add_argument('--inverse_DNN_hot_start_dataset', type=str, default='from_scratch',
+        help='enter the name of the dataset we will hot start the inverse DNN with')
 
-    parser.add_argument(
-        '--num_inverse_layers_to_transfer',
-        type=int,
-        default=0,
-        help='enter how many layer of the inverse DNN should be transferred and frozen in the TL configuration'
-    )
+    parser.add_argument('--mode', type=str, default = 'train',
+        help = 'enter train to do training followed by inference and enter inference to do inference on a pretrained model')
+
+    parser.add_argument('--num_inverse_layers_to_transfer', type=int, default=0,
+        help='enter how many layer of the inverse DNN should be transferred and frozen in the TL configuration')
 
     args = parser.parse_args()
 
+    print(args.forward_DNN_hot_start)
+    import sys
+    sys.exit(0)
+
+
+
     X_train, y_train, X_test, y_test = load_data(dataset_name=args.dataset_name)
-    print('')
-    print('--------------------')
+    print('\n -------------------- \n')
     print(f'LOADED {args.dataset_name} DATASET')
-    print('--------------------')
-    print('')
+    print('\n -------------------- \n')
 
     train_data = (X_train, y_train)
     test_data = (X_test, y_test)
@@ -93,20 +69,14 @@ def main():
     input_size = X_train.shape[1]
     output_size = y_train.shape[1]
 
-    print(f'Input size: {input_size} (emissivity), Output size: {output_size} (laser parameters)')
-    print('')
+    print(f'Input size: {input_size} (emissivity), Output size: {output_size} (laser parameters) \n')
 
     print(f'shape of X_train: {X_train.shape}, shape of y_train: {y_train.shape}')
-    print(f'shape of X_test: {X_test.shape}, shape of y_test: {y_test.shape}')
-    print('')
+    print(f'shape of X_test: {X_test.shape}, shape of y_test: {y_test.shape} \n')
 
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
-
-    ############################
-    ####### LOADING FORWARD DNN
-    ############################
     
     from model_check import forward_DNN_check
 
@@ -153,7 +123,7 @@ def main():
 
         models = []
 
-        n_trials = 20
+        n_trials = 1
         for i in range(n_trials):
 
             tnn_model = tnn.tandem_model(
@@ -207,11 +177,6 @@ def main():
             result_dir = f'results/inc_ss/{loss_type}'
         elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
             result_dir = f'results/airfoil/{loss_type}'
-
-
-        inverse_DNN_hot_start_dataset = args.inverse_DNN_hot_start_dataset
-        if args.inverse_DNN_hot_start_dataset == None:
-            inverse_DNN_hot_start_dataset = 'from_scratch'
 
         result_dir = f'{result_dir}/{int(args.num_inverse_layers_frozen/2)}_layers_frozen' if args.inverse_DNN_hot_start_dataset != None else result_dir
         os.makedirs(result_dir, exist_ok=True)

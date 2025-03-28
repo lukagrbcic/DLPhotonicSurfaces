@@ -77,19 +77,6 @@ class tandem_model():
         
         return dataloader
 
-    def freeze_layers(self, inverse_DNN, num_layers_to_freeze):
-
-        print(f'Freezing first {int(num_layers_to_freeze/2)} layers of inverse DNN')
-
-        count = 0
-        for p in inverse_DNN.parameters():
-            if count < num_layers_to_freeze*2:
-                p.requires_grad=False
-            count+=1
-
-        return inverse_DNN
-
-
     def train(self, dataset_name, alpha=0):
 
         def criterion(emissivity_preds, emissivity_targets,
@@ -105,12 +92,10 @@ class tandem_model():
 
             return laser_param_term + lambda_val*emissivity_term
         
-        print('')
-        print('------------------')
+        print('\n ------------------')
         print('-----TRAINING-----')
         print('------------------')
-        print ('Using:', self.device)
-        print('')
+        print (f'Using: {self.device} \n')
         
         X_train, X_val, y_train, y_val = train_test_split(self.train_data[0], 
                                                           self.train_data[1],
@@ -162,8 +147,7 @@ class tandem_model():
             pretrained_model = self.inverse_architecture
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
 
-            inverse_DNN_dataset = self.inverse_DNN_dataset
-            print(f'TRANSFERING {inverse_DNN_dataset} weights for {self.dataset_name} task')
+            print(f'TRANSFERING {self.inverse_DNN_dataset} weights for {self.dataset_name} task')
 
             # doing the layer transfer
             if self.num_layers_to_transfer == 1:
@@ -365,7 +349,7 @@ class tandem_model():
 
         if self.configuration == 'transfer_learning':
             print('')
-            print(f'Transfer learning -- loading inverse DNN pretrained on {self.inverse_DNN_dataset} with hot start on {}')
+            print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
             inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{self.forward_DNN_dataset}.pth'
         else: # standard configuration
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_DNN.pth'
