@@ -100,7 +100,7 @@ def main():
         if args.configuration == 'standard':
             model = invfow.forwardMLP(input_size, output_size).to(device)  
             hot_start_dataset = None          
-            print(model.model)
+            print(model)
         
         ### we are hot starting
         elif args.configuration == 'transfer_learning':
@@ -108,7 +108,7 @@ def main():
             print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
             # random weights
             model = invfow.forwardMLP(input_size, output_size).to(device)            
-            print(model.model)
+            print(model)
             print()
 
             # load hot start weights into model

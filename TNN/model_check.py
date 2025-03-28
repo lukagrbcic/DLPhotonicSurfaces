@@ -37,9 +37,9 @@ def inverse_DNN_tl_config_check(args):
     print(f'TASK: {args.dataset_name} dataset')
     print('Transfer learning configuration -- we hot start the inverse DNN weights')
     ## there should be a hot start dataset for the inverse DNN
-    assert args.inverse_DNN_hot_start_dataset != None
+    assert args.inverse_DNN_hot_start_dataset != 'from_scratch'
     ## it should not be the same one we are doing the task on
     assert args.dataset_name != args.inverse_DNN_hot_start_dataset
-    print(f'Inverse DNN weights were hot started with {args.inverse_DNN_dataset_hot_start}')
-    print(f'{int(args.num_inverse_layers_to_transfer/2)} layers of inverse DNN will be transferred and frozen')
+    print(f'Inverse DNN weights were hot started with {args.inverse_DNN_hot_start_dataset}')
+    print(f'{args.num_inverse_layers_to_transfer} layers of inverse DNN will be transferred and frozen')
     print('\n -------------------- \n')

@@ -169,7 +169,7 @@ def main():
 
         if args.dataset_name == 'inconel' or args.dataset_name == 'stainless_steel':
             result_dir = f'results/inc_ss/{loss_type}'
-        elif args.dataset_name == 'airfoil_re_1_3' or args.dataset_name == 'airfoil_re_3_6':
+        elif args.dataset_name == 'airfoil_re_1_3' or args.tdataset_name == 'airfoil_re_3_6':
             result_dir = f'results/airfoil/{loss_type}'
 
         result_dir = f'{result_dir}/{int(args.num_inverse_layers_to_transfer/2)}_layers_frozen' if args.inverse_DNN_hot_start_dataset != None else result_dir

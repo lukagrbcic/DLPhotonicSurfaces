@@ -134,65 +134,71 @@ class tandem_model():
         ##############################
         
         # load the inverse model, which will have randomly initialized weights to begin with
-        inverse = self.inverse_architecture
+        input_size = self.train_data[0].shape[1]
+        output_size = self.train_data[1].shape[1]
+        inverse = self.inverse_architecture.__class__(input_size, output_size)
 
         if self.configuration == 'transfer_learning':
             ## we are doing transfer learning
-            print('---- TRANSFER LEARNING CONFIGURATION ----')
+            print('\n---- TRANSFER LEARNING CONFIGURATION ----')
+            print(f'TRANSFERING {self.inverse_DNN_hot_start_dataset} weights for {self.dataset_name} task')
             
             # loading the entire pretrained model to prepare for selective weight transfer
             forward_hot_start = 'from_scratch'
             forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
             hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth'
-            pretrained_model = self.inverse_architecture
+            pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
+
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
 
-            print(f'TRANSFERING {self.inverse_DNN_dataset} weights for {self.dataset_name} task')
+            for k, v in inverse.state_dict().items():
+                assert torch.equal(inverse.state_dict()[k], pretrained_model.state_dict()[k]) == False
+
+            print('New inverse DNN was instantiated and contains random weights\n')
 
             # doing the layer transfer
-            if self.num_layers_to_transfer == 1:
+            if self.num_inverse_layers_to_transfer == 1:
                 inverse.linear1.load_state_dict(pretrained_model.linear1.state_dict())
 
-            elif self.num_layers_to_transfer == 2:
+            elif self.num_inverse_layers_to_transfer == 2:
                 inverse.linear1.load_state_dict(pretrained_model.linear1.state_dict())
                 inverse.linear2.load_state_dict(pretrained_model.linear2.state_dict())
 
             ### disabling gradient calculation to freeze selective layers
             count = 0
             for p in inverse.parameters():
-                if count < self.num_layers_to_transfer*2:
+                if count < self.num_inverse_layers_to_transfer*2:
                     p.requires_grad = False
                 count += 1
 
             ### verifying that transfer done properly
-
             i = 0
             for key in inverse.state_dict().keys():
-                if i < 8:
-                    if i < self.num_layers_to_transfer*2:
-                        assert torch.all(torch.eq(inverse.state_dict()[key], pretrained_model.state_dict()[key])).item()
-                    else:
-                        if inverse.state_dict()[key].ndim == 1:
-                            assert inverse.state_dict()[key][0] != pretrained_model.state_dict()[key][0]
-                        else:
-                            assert inverse.state_dict()[key][0,0] != pretrained_model.state_dict()[key][0,0]
+                # for the weight and the bias
+                if i < self.num_inverse_layers_to_transfer*2:
+                    assert torch.all(torch.eq(inverse.state_dict()[key], pretrained_model.state_dict()[key])).item()
+                    print(f'Parameters for {key} were transferred and match exactly')
                 else:
-                    break
-                i += 1
+                    assert torch.equal(inverse.state_dict()[key], pretrained_model.state_dict()[key]) == False
+                    print(f'Parameters for {key} were not transferred')
+                i+=1
 
             print()
             print(f'FREEZING {self.num_inverse_layers_to_transfer} LAYERS')
 
             count = 0
             for p in inverse.parameters():
-                if count < self.num_layers_to_transfer*2:
+                if count < self.num_inverse_layers_to_transfer*2:
                     assert p.requires_grad == False
                 else:
                     assert p.requires_grad == True
                 count += 1
 
-            print('TRANSFER COMPLETE')
+            print('---- TRANSFER COMPLETE ----')
             print()
+
+            import sys
+            sys.exit(0)
 
             for p in inverse.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
@@ -335,10 +341,13 @@ class tandem_model():
 
         forward.load_state_dict(torch.load(self.forward_DNN[0]))
 
+        forward_DNN_save_descriptor = ''
         if self.forward_DNN_hot_start:
-            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start}')
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start_dataset}')
+            forward_DNN_save_descriptor = 'hot_start_'
         else:
-             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+             
 
         forward.eval()
         ### deactivating gradients for forward DNN so it's not experiencing backprop
@@ -350,9 +359,9 @@ class tandem_model():
         if self.configuration == 'transfer_learning':
             print('')
             print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{self.forward_DNN_dataset}.pth'
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_dataset}.pth'
         else: # standard configuration
-            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_{self.inverse_DNN_hot_start_dataset}_forward_{self.forward_DNN_hot_start_dataset}.pth'
+            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_hot_start_dataset}.pth'
             inverse.load_state_dict(torch.load(inverse_path))
 
 
