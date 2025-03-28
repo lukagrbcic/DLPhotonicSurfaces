@@ -1,18 +1,21 @@
 import pandas as pd
 import json
 
-def make_results_df(dataset, transfer_dataset, results_dir, num_inverse_layers_frozen):
+def make_results_df(dataset, hot_start_dataset, results_dir, num_inverse_layers_to_transfer):
 
     df = pd.DataFrame()
 
-    df['Config'] = ['Forward Model', 'TNN Standard', 'TL - 1', 'TL - 2', 'TL - 3']
-    df['Forward DNN'] = [dataset, dataset, dataset, transfer_dataset, transfer_dataset]
-    df['Inverse DNN'] = ['n/a', 'from scratch', transfer_dataset, 'from scratch', transfer_dataset]
+    df['Config'] = ['Forward Model', 'Standard', 'Standard', 'TL - 1', 'TL - 2']
+    df['Forward DNN'] = ['from_scratch', 'from_scratch', dataset, 'from_scratch', hot_start_dataset]
+    df['Inverse DNN'] = ['n/a', 'from_scratch', 'from_scratch', hot_start_dataset, hot_start_dataset]
 
-    standard_path = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_from_scratch.json'
-    tl_1_path = f'{results_dir}/{num_inverse_layers_frozen}_layers_frozen/transfer_learning_{dataset}_dataset_forwardDNN_{dataset}_inverseDNN_{transfer_dataset}.json'
-    tl2_path = f'{results_dir}/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_from_scratch.json'
-    tl3_path = f'{results_dir}/{num_inverse_layers_frozen}_layers_frozen/transfer_learning_{dataset}_dataset_forwardDNN_{transfer_dataset}_inverseDNN_{transfer_dataset}.json'
+    standard_fwd_from_scratch_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/standard_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_from_scratch.json'
+    standard_fwd_hot_start = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/standard_{dataset}_dataset_forwardDNN_hot_start_{hot_start_dataset}_inverseDNN_from_scratch.json'
+
+    tl_1_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_hot_start_{hot_start_dataset}.json'
+    tl_2_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_hot_start_{hot_start_dataset}_inverseDNN_hot_start_{hot_start_dataset}.json'
+
+    
 
     if dataset == 'inconel':
         train_losses = [0.03099]
@@ -31,7 +34,7 @@ def make_results_df(dataset, transfer_dataset, results_dir, num_inverse_layers_f
     epochs = [0.0]
     epochs_std = [0.0]
 
-    paths = [standard_path, tl_1_path, tl2_path, tl3_path]
+    paths = [standard_fwd_from_scratch_path, standard_fwd_hot_start, tl_1_path, tl_2_path]
 
     for path in paths:
 

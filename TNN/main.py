@@ -172,7 +172,7 @@ def main():
         elif args.dataset_name == 'airfoil_re_1_3' or args.tdataset_name == 'airfoil_re_3_6':
             result_dir = f'results/airfoil/{loss_type}'
 
-        result_dir = f'{result_dir}/{int(args.num_inverse_layers_to_transfer/2)}_layers_frozen' if args.inverse_DNN_hot_start_dataset != None else result_dir
+        result_dir = f'{result_dir}/{args.num_inverse_layers_to_transfer}_layers_transferred' if args.inverse_DNN_hot_start_dataset != None else result_dir
         os.makedirs(result_dir, exist_ok=True)
         forward_hot_start = 'from_scratch'
         forward_hot_start = 'hot_start_' + args.forward_DNN_hot_start_dataset if args.forward_DNN_hot_start else forward_hot_start
