@@ -5,9 +5,9 @@ def make_results_df(dataset, hot_start_dataset, results_dir, num_inverse_layers_
 
     df = pd.DataFrame()
 
-    df['Config'] = ['Forward Model', 'Standard', 'Standard', 'TL - 1', 'TL - 2']
-    df['Forward DNN'] = ['from_scratch', 'from_scratch', dataset, 'from_scratch', hot_start_dataset]
-    df['Inverse DNN'] = ['n/a', 'from_scratch', 'from_scratch', hot_start_dataset, hot_start_dataset]
+    df['Config'] = ['Forward Model', 'Forward Model', 'Standard', 'Standard', 'TL - 1', 'TL - 2']
+    df['Forward DNN'] = ['from_scratch', hot_start_dataset, 'from_scratch', dataset, 'from_scratch', hot_start_dataset]
+    df['Inverse DNN'] = ['n/a', 'n/a', 'from_scratch', 'from_scratch', hot_start_dataset, hot_start_dataset]
 
     standard_fwd_from_scratch_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/standard_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_from_scratch.json'
     standard_fwd_hot_start = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/standard_{dataset}_dataset_forwardDNN_hot_start_{hot_start_dataset}_inverseDNN_from_scratch.json'
@@ -18,21 +18,21 @@ def make_results_df(dataset, hot_start_dataset, results_dir, num_inverse_layers_
     
 
     if dataset == 'inconel':
-        train_losses = [0.03099]
-        val_losses = [0.03263]
-        test_losses = [0.02565]
+        train_losses = [0.027089, 0.02697]
+        val_losses = [0.02755, 0.02774]
+        test_losses = [0.02145, 0.02201]
     elif dataset == 'stainless_steel':
-        train_losses = [0.03392]
-        val_losses = [0.03240]
-        test_losses = [0.02726]
+        train_losses = [0.03525, 0.03316]
+        val_losses = [0.03434, 0.03238]
+        test_losses = [0.02893, 0.02623]
 
 
-    train_std = [0.0]
-    val_std = [0.0]
-    test_std = [0.0]
+    train_std = [0.0, 0.0]
+    val_std = [0.0, 0.0]
+    test_std = [0.0, 0.0]
 
-    epochs = [0.0]
-    epochs_std = [0.0]
+    epochs = [0.0, 0.0]
+    epochs_std = [0.0, 0.0]
 
     paths = [standard_fwd_from_scratch_path, standard_fwd_hot_start, tl_1_path, tl_2_path]
 

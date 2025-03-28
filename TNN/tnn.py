@@ -61,7 +61,7 @@ class tandem_model():
         self.device = device
         self.rmse_loss = rmse_loss
 
-        self.inverse_DNN = None
+        self.inverse = None
     
     def get_torch_dataloader(self, data, inference=False):
         
@@ -118,7 +118,7 @@ class tandem_model():
         forward.load_state_dict(torch.load(self.forward_DNN[0]))
 
         if self.forward_DNN_hot_start:
-            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start}')
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start_dataset}')
         else:
              print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
 
@@ -145,9 +145,9 @@ class tandem_model():
             print(f'TRANSFERING {self.inverse_DNN_hot_start_dataset} weights for {self.dataset_name} task')
             
             # loading the entire pretrained model to prepare for selective weight transfer
-            forward_hot_start = 'from_scratch'
-            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
-            hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth'
+            ## in particular, when we pull an inverse DNN to hot start, it should be a model
+            ## that was trained from scratch by a forward DNN that was trained from scratch
+            hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_from_scratch.pth'
 
             pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
@@ -214,10 +214,6 @@ class tandem_model():
         epochs_no_improve = 0
 
         train_losses = []
-        val_losses = []
-
-        final_train_loss = 0.0
-        final_val_loss = 0.0
 
         num_epochs = self.epochs
         epochs_to_converge = 0
@@ -226,30 +222,26 @@ class tandem_model():
             epoch_train_loss = 0
             for train_emis_inputs, train_param_targets in tqdm(train_loader):
                 optimizer.zero_grad()
-                # map emissivity curves to laser parameters
-                train_param_outputs = inverse(train_emis_inputs)
 
-                # map the laser parameters back to emissivity curves
-                train_emissivity_output = forward(train_param_outputs)
-           
-                # compute loss across the TNN produced emissivities and the inputs to the inverse model, 
-                # which are taken from the training data
-
+    
+                train_param_outputs = inverse(train_emis_inputs) # map emissivity curves to laser parameters
+                train_emissivity_output = forward(train_param_outputs) # map the laser parameters back to emissivity curves
 
                 loss = criterion(emissivity_preds=train_emissivity_output,
                                     emissivity_targets=train_emis_inputs,
                                     parameter_preds=train_param_outputs,
                                     parameter_targets=train_param_targets, lambda_val=0.8, loss=self.loss_type)
 
-                # this will only change the weights of the inverse DNN
-                loss.backward()
+                loss.backward() # this will only change the weights of the inverse DNN
                 optimizer.step()
                 epoch_train_loss += loss.item()  
         
             avg_train_loss = epoch_train_loss / len(train_loader)
             train_losses.append(avg_train_loss)
             
-            # 
+            val_losses = []
+            final_val_loss = 0.0
+
             inverse.eval()
             with torch.no_grad():
                 total_val_loss = 0
@@ -258,9 +250,6 @@ class tandem_model():
                     # map emissivity -> laser parameters -> emissivity again
                     val_param_outputs = inverse(val_emis_inputs)
                     val_emissivity_output = forward(val_param_outputs)
-
-                    # print('parameter preds shape: ', val_param_outputs.shape)
-                    # print('parameter targets shape: ', val_param_targets.shape)
         
                     loss = criterion(emissivity_preds=val_emissivity_output,
                                     emissivity_targets=val_emis_inputs,
@@ -286,21 +275,22 @@ class tandem_model():
                 print(f'Early stopping at epoch {epoch+1}')
                 break
 
-
+        ##################
         ### saving mechanism
+        ##################
+
+        forward_descriptor = 'from_scratch'
+        forward_descriptor = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
-            forward_hot_start = 'from_scratch'
-            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
             os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
-            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_hot_start}.pth'
-            torch.save(inverse.state_dict(), path)
-            print('Saved model')
+            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         elif self.configuration == 'standard':
-            forward_hot_start = 'from_scratch'
-            forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
-            torch.save(inverse.state_dict(), f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth')
-            self.inverse_DNN = inverse
-            print('Saved model')
+            path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
+        torch.save(inverse.state_dict(), path)
+
+        self.inverse_DNN = inverse
+        print()
+        print(f'Saved model to {path}')
 
 
         print('------------------')
@@ -343,10 +333,10 @@ class tandem_model():
 
         forward.load_state_dict(torch.load(self.forward_DNN[0]))
 
-        forward_DNN_save_descriptor = ''
+        forward_DNN_save_descriptor = 'from_scratch'
         if self.forward_DNN_hot_start:
             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start_dataset}')
-            forward_DNN_save_descriptor = 'hot_start_'
+            forward_DNN_save_descriptor = f'hot_start_{self.forward_DNN_hot_start_dataset}'
         else:
             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
              
@@ -359,13 +349,12 @@ class tandem_model():
         print('Forward DNN frozen')
 
         if self.configuration == 'transfer_learning':
-            print('')
+            print()
             print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_dataset}.pth'
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}.pth'
         else: # standard configuration
-            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_hot_start_dataset}.pth'
-            inverse.load_state_dict(torch.load(inverse_path))
-
+            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_DNN_save_descriptor}{self.forward_DNN_hot_start_dataset}.pth'
+        inverse.load_state_dict(torch.load(inverse_path))
 
         forward.eval()
         inverse.eval()

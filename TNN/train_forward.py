@@ -139,19 +139,13 @@ def main():
 
             i = 0
             for key in model.state_dict().keys():
-                if i < 8:
-                    if i < args.num_layers_to_transfer*2:
-                        ## verifying transferred layers are the same
-                        assert torch.all(torch.eq(model.state_dict()[key], hot_start_model.state_dict()[key])).item()
-                    else:
-                        ## ReLU layer
-                        if model.state_dict()[key].ndim == 1:
-                            assert model.state_dict()[key][0] != hot_start_model.state_dict()[key][0]
-                        ## linear layer
-                        else:
-                            assert model.state_dict()[key][0,0] != hot_start_model.state_dict()[key][0,0]
+                if i < args.num_layers_to_transfer*2:
+                    ## verifying transferred layers are the same
+                    assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key])
+                    print(f'Parameters for {key} were transferred and match exactly')
                 else:
-                    break
+                    assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key]) == False
+                    print(f'Parameters for {key} were not transferred')
                 i += 1
 
             count = 0
