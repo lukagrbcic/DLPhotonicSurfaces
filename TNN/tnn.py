@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import joblib
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import os
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -136,7 +137,7 @@ class tandem_model():
         # load the inverse model, which will have randomly initialized weights to begin with
         input_size = self.train_data[0].shape[1]
         output_size = self.train_data[1].shape[1]
-        inverse = self.inverse_architecture.__class__(input_size, output_size)
+
 
         if self.configuration == 'transfer_learning':
             ## we are doing transfer learning
@@ -147,9 +148,10 @@ class tandem_model():
             forward_hot_start = 'from_scratch'
             forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
             hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_hot_start}.pth'
-            pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
 
+            pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
+            inverse = self.inverse_architecture.__class__(input_size, output_size)
 
             for k, v in inverse.state_dict().items():
                 assert torch.equal(inverse.state_dict()[k], pretrained_model.state_dict()[k]) == False
@@ -197,16 +199,15 @@ class tandem_model():
             print('---- TRANSFER COMPLETE ----')
             print()
 
-            import sys
-            sys.exit(0)
-
             for p in inverse.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
+            print()
         elif self.configuration == 'standard':
+            inverse = self.inverse_architecture.__class__(input_size, output_size)
             print('Initializing inverse_DNN from scratch')
+
+        inverse.to(self.device)
         
-
-
         optimizer = optim.Adam(inverse.parameters(), lr=0.0004) #0.0002
         early_stopping_patience = 5
         best_loss = float('inf')
@@ -290,7 +291,8 @@ class tandem_model():
         if self.configuration == 'transfer_learning':
             forward_hot_start = 'from_scratch'
             forward_hot_start = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_hot_start
-            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_dataset}_forward_{forward_hot_start}.pth'
+            os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
+            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_hot_start}.pth'
             torch.save(inverse.state_dict(), path)
             print('Saved model')
         elif self.configuration == 'standard':
@@ -359,7 +361,7 @@ class tandem_model():
         if self.configuration == 'transfer_learning':
             print('')
             print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_dataset}.pth'
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_dataset}.pth'
         else: # standard configuration
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}{self.forward_DNN_hot_start_dataset}.pth'
             inverse.load_state_dict(torch.load(inverse_path))
@@ -373,7 +375,7 @@ class tandem_model():
 
         predictions = []
         laser_params = []
-        rmse_loss = []
+        rmse_losses = []
         with torch.no_grad():
 
             for emis_inputs, param_targets in test_loader:
@@ -388,23 +390,23 @@ class tandem_model():
                                     emissivity_targets=emis_inputs,
                                     parameter_preds=param_outputs,
                                     parameter_targets=param_targets, lambda_val=0.8, loss=self.loss_type)
-                rmse_loss.append(rmse.cpu().numpy())
+                rmse_losses.append(rmse.cpu().numpy())
             
         emissivity_predictions = np.concatenate(predictions)
         laser_params_predictions = np.concatenate(laser_params)
-        rmse_loss = [i.item() for i in rmse_loss]
+        rmse_losses = [i.item() for i in rmse_losses]
 
-        print ('Mean RMSE:', np.mean(rmse_loss))
-        print ('Std RMSE:', np.std(rmse_loss))
-        print ('Min RMSE:', np.min(rmse_loss))
-        print ('Max RMSE:', np.max(rmse_loss))
+        print ('Mean RMSE:', np.mean(rmse_losses))
+        print ('Std RMSE:', np.std(rmse_losses))
+        print ('Min RMSE:', np.min(rmse_losses))
+        print ('Max RMSE:', np.max(rmse_losses))
             
 
         print('------------------')
         print('INFERENCE COMPLETE')
         print('------------------')
 
-        return emissivity_predictions, laser_params_predictions, rmse_loss, np.mean(rmse_loss)
+        return emissivity_predictions, laser_params_predictions, rmse_losses, np.mean(rmse_losses)
         
     def post_process(self, emissivity_predictions, laser_params_predictions, rmse):
         
