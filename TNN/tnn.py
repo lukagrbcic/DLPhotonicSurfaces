@@ -205,8 +205,12 @@ class tandem_model():
             for p in inverse.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
             print()
+
         elif self.configuration == 'standard':
             inverse = self.inverse_architecture.__class__(input_size, output_size)
+            # torch.save(inverse.state_dict().copy(), 'inverse_DNN_starting_wts.pth')
+            starting_weights_path = 'inverse_DNN_starting_wts.pth'
+            inverse.load_state_dict(torch.load(starting_weights_path))
             print('Initializing inverse_DNN from scratch')
 
         inverse.to(self.device)
