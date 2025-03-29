@@ -20,23 +20,24 @@ plt.rcParams.update({
 class tandem_model():
     
     def __init__(self, 
+                configuration,
                 train_data,
                 test_data,
-                train_val_split_seed,
-                forward_architecture,
-                inverse_architecture,
-                num_inverse_layers_to_transfer,
-                epochs,
-                device,
                 dataset_name,
+                train_val_split_seed,
                 forward_DNN_dataset,
                 forward_DNN_hot_start,
                 forward_DNN_hot_start_dataset,
                 inverse_DNN_hot_start_dataset,
+                forward_architecture,
+                inverse_architecture,
+                num_forward_layers_transferred,
+                num_inverse_layers_to_transfer,
+                epochs,
+                device,
                 loss_type,
                 batch_size = 64,
                 forward_DNN=None,
-                configuration='standard',
                 verbose=True, 
                 rmse_loss=False,
                 ):
@@ -44,15 +45,18 @@ class tandem_model():
         self.train_data = train_data #tuple (inputs, outputs)
         self.test_data = test_data #tuple (inputs, outputs)
         self.train_val_split_seed = train_val_split_seed
-        self.forward_architecture = forward_architecture #forward DNN architecture
-        self.inverse_architecture = inverse_architecture #inverse DNN architecutre
-        self.num_inverse_layers_to_transfer = num_inverse_layers_to_transfer
-        self.epochs = epochs 
         self.dataset_name = dataset_name
         self.forward_DNN_dataset = forward_DNN_dataset
         self.forward_DNN_hot_start = forward_DNN_hot_start
         self.forward_DNN_hot_start_dataset = forward_DNN_hot_start_dataset
         self.inverse_DNN_hot_start_dataset = inverse_DNN_hot_start_dataset
+        self.forward_architecture = forward_architecture #forward DNN architecture
+        self.inverse_architecture = inverse_architecture #inverse DNN architecutre
+        self.num_forward_layers_transferred = num_forward_layers_transferred
+        self.num_inverse_layers_to_transfer = num_inverse_layers_to_transfer
+        self.epochs = epochs 
+        self.dataset_name = dataset_name
+        
         self.batch_size = batch_size
         self.forward_DNN = forward_DNN #tuple (ml_model, pca_model) #load forward DNN here (include minmax scaler)
         self.verbose = verbose
@@ -279,11 +283,12 @@ class tandem_model():
         ##################
 
         forward_descriptor = 'from_scratch'
-        forward_descriptor = f'{self.forward[0].num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
+        forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
             path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         elif self.configuration == 'standard':
+            os.makedirs('inverseDNN/', exist_ok=True)
             path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
         torch.save(inverse.state_dict(), path)
 
@@ -349,7 +354,7 @@ class tandem_model():
         
 
         forward_descriptor = 'from_scratch'
-        forward_descriptor = f'{self.forward[0].num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
+        forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             print(f'\nTransfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
             inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'

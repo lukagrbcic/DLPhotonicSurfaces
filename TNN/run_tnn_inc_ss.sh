@@ -14,20 +14,20 @@ conda activate dnn_env
 ### for inconel task: training from scratch an inverse DNN with a
 ### forward DNN trained from SCRATCH on inconel
 
-# python main.py config dataset fwd_dset fwd_hot_start
-python main.py standard inconel inconel --forward_DNN_from_scratch --mode train
+# # python main.py config dataset fwd_dset fwd_hot_start
+# python main.py standard inconel inconel --forward_DNN_from_scratch --mode train
 
-# ### For inconel task: training from scratch an inverse DNN with a 
-# ### forward DNN (trained on inconel task) that was hot started on stainless steel
-python main.py standard inconel inconel --forward_DNN_hot_start --forward_DNN_hot_start_dataset stainless_steel --mode train
+# # ### For inconel task: training from scratch an inverse DNN with a 
+# # ### forward DNN (trained on inconel task) that was hot started on stainless steel
+# python main.py standard inconel inconel --forward_DNN_hot_start --forward_DNN_hot_start_dataset stainless_steel --mode train --num_forward_layers_transferred 1
 
-# # # ### for stainless steel task: training from scratch an inverse DNN with a
-# # # ### forward DNN trained from SCRATCH on stainless steel
-python main.py standard stainless_steel stainless_steel --forward_DNN_from_scratch --mode train
+# # # # ### for stainless steel task: training from scratch an inverse DNN with a
+# # # # ### forward DNN trained from SCRATCH on stainless steel
+# python main.py standard stainless_steel stainless_steel --forward_DNN_from_scratch --mode train
 
-# # # ### For inconel task: training from scratch an inverse DNN with a 
-# # # ### forward DNN (trained on inconel task) that was hot started on stainless steel
-python main.py standard stainless_steel stainless_steel --forward_DNN_hot_start --forward_DNN_hot_start_dataset inconel --mode train
+# # # # ### For inconel task: training from scratch an inverse DNN with a 
+# # # # ### forward DNN (trained on inconel task) that was hot started on stainless steel
+# python main.py standard stainless_steel stainless_steel --forward_DNN_hot_start --forward_DNN_hot_start_dataset inconel --mode train --num_forward_layers_transferred 1
 
 
 # # ###############

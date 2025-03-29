@@ -55,7 +55,7 @@ def main():
 
     args = parser.parse_args()
 
-    X_train, y_train, X_test, y_test = load_data(dataset_name=args.dataset_name)
+    X_train, y_train, X_test, y_test = load_data_for_tnn_training(dataset_name=args.dataset_name)
     print('\n -------------------- \n')
     print(f'LOADED {args.dataset_name} DATASET')
     print('\n -------------------- \n')
@@ -124,22 +124,23 @@ def main():
         for i in range(n_trials):
 
             tnn_model = tnn.tandem_model(
+                            configuration=args.configuration,
                             train_data=train_data, 
                             test_data=test_data,
                             train_val_split_seed=random.randint(0,100),
-                            forward_architecture=forward_architecture, 
-                            inverse_architecture=inverse_architecture,
-                            num_inverse_layers_to_transfer=args.num_inverse_layers_to_transfer,
-                            epochs=max_epochs, 
-                            device=device, 
                             dataset_name=args.dataset_name,
                             forward_DNN_dataset=args.forward_DNN_dataset,
                             forward_DNN_hot_start = args.forward_DNN_hot_start,
                             forward_DNN_hot_start_dataset = args.forward_DNN_hot_start_dataset,
                             inverse_DNN_hot_start_dataset=args.inverse_DNN_hot_start_dataset,
+                            forward_architecture=forward_architecture, 
+                            inverse_architecture=inverse_architecture,
+                            num_forward_layers_transferred=args.num_forward_layers_transferred,
+                            num_inverse_layers_to_transfer=args.num_inverse_layers_to_transfer,
+                            epochs=max_epochs, 
+                            device=device, 
                             loss_type=loss_type,
                             forward_DNN=forward_DNN,
-                            configuration=args.configuration,
                             verbose=verbose)   
 
             alpha=0
