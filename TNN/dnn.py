@@ -4,7 +4,7 @@ import torch.optim as optim
     
     
 class forwardMLP(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, num_layers_to_transfer=0):
         super(forwardMLP, self).__init__()
 
         self.linear1 = nn.Linear(input_size, 64)
@@ -13,6 +13,8 @@ class forwardMLP(nn.Module):
         self.linear4 = nn.Linear(64, output_size)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
+
+        self.num_layers_to_transfer = num_layers_to_transfer
 
     def forward(self, x):
         y1 = self.relu(self.linear1(x))

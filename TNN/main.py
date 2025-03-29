@@ -50,6 +50,9 @@ def main():
     parser.add_argument('--num_inverse_layers_to_transfer', type=int, default=0,
         help='enter how many layer of the inverse DNN should be transferred and frozen in the TL configuration')
 
+    parser.add_argument('--num_forward_layers_transferred', type=int, default=0,
+        help='enter how many layers of the forward DNN were used in hot starting')
+
     args = parser.parse_args()
 
     X_train, y_train, X_test, y_test = load_data(dataset_name=args.dataset_name)
@@ -172,12 +175,14 @@ def main():
         elif args.dataset_name == 'airfoil_re_1_3' or args.tdataset_name == 'airfoil_re_3_6':
             result_dir = f'results/airfoil/{loss_type}'
 
-        result_dir = f'{result_dir}/{args.num_inverse_layers_to_transfer}_layers_transferred' if args.inverse_DNN_hot_start_dataset != None else result_dir
+        result_dir = f'{result_dir}/{args.num_inverse_layers_to_transfer}_layers_transferred' if args.inverse_DNN_hot_start_dataset != 'from_scratch' else result_dir
         os.makedirs(result_dir, exist_ok=True)
         forward_hot_start = 'from_scratch'
         forward_hot_start = 'hot_start_' + args.forward_DNN_hot_start_dataset if args.forward_DNN_hot_start else forward_hot_start
         inverse_hot_start = 'hot_start_' + args.inverse_DNN_hot_start_dataset if args.configuration == 'transfer_learning' else 'from_scratch'
-        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{forward_hot_start}_inverseDNN_{inverse_hot_start}.json'
+        forward_transfer_descriptor = ''
+        forward_transfer_descriptor = f'{models[-1].forward.num_layers_to_transfer}_layers_transferred_' if args.forward_DNN_hot_start else forward_transfer_descriptor
+        outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{forward_transfer_descriptor}{forward_hot_start}_inverseDNN_{inverse_hot_start}.json'
 
         obj = {'mean train loss': mean_train_loss,
                'mean val loss': mean_val_loss,

@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 from config import load_config
+from load_data import load_data, get_data_paths
 
 seed = 23
 torch.manual_seed(seed)
@@ -66,31 +67,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.dataset_name == 'inconel':
-        train_input_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/inconel_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/inconel_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/inconel_data/output_test_data.npy'
-    elif args.dataset_name == 'stainless_steel':
-        train_input_path = '/home/vpatro/TNN_data/ss_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/ss_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/ss_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/ss_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil_re_1_3':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_1_3_data/output_test_data.npy'
-    elif args.dataset_name == 'airfoil_re_3_6':
-        train_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_train_data.npy'
-        train_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_train_data.npy'
-        test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
-        test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
-
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    train_loader, val_loader, test_loader, input_size, output_size = load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
+    train_input_path, train_output_path, test_input_path, test_output_path = get_data_paths(args.dataset_name)
+    train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
     if args.mode == 'train':
         print('Performing training followed by inference')
@@ -99,7 +78,6 @@ def main():
         ### we are training a forward DNN from scratch
         if args.configuration == 'standard':
             model = invfow.forwardMLP(input_size, output_size).to(device)  
-            hot_start_dataset = None          
             print(model)
         
         ### we are hot starting
@@ -107,7 +85,7 @@ def main():
             print()
             print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
             # random weights
-            model = invfow.forwardMLP(input_size, output_size).to(device)            
+            model = invfow.forwardMLP(input_size, output_size, args.num_layers_to_transfer).to(device)            
             print(model)
             print()
 
@@ -173,23 +151,20 @@ def main():
                                         hot_start_dataset_name=hot_start_dataset)
 
     else:
-        print('Loading pretrained model and performing inference')
-        print('\n')
+        print('Loading pretrained model and performing inference\n')
         model = invfow.forwardMLP(input_size, output_size).to(device)
-        forward_model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
-        model.load_state_dict(torch.load(forward_model_path))
-        config = load_config(args.config_file_path)
+        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset_name}_hot_start_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+        else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
+        model.load_state_dict(torch.load(LOAD_PATH))
 
     predictions, rmse_losses = inference(model, test_loader)
     plot_results(train_losses, val_losses)
 
-def load_data(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
+def build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
 
-    print('')
-    print('--------------------')
+    print('\n--------------------')
     print(f'LOADED {dataset_name} DATASET')
-    print('--------------------')
-    print('')   
+    print('--------------------\n')
 
     print(f'Using device: {device}')
     X_ = np.load(train_input_path)
@@ -257,9 +232,6 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
     train_losses = []
     val_losses = []
 
-    train_rmse_vals = []
-    val_rmse_vals = []
-
     num_epochs = config['model_params']['n_epochs']
     for epoch in range(num_epochs):
         model.train()
@@ -272,8 +244,6 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
             optimizer.step()
             epoch_train_loss += loss.item()  
 
-
-
         avg_train_loss = epoch_train_loss / len(train_loader)
         train_losses.append(avg_train_loss)
         
@@ -281,7 +251,6 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
         model.eval()
         with torch.no_grad():
             total_val_loss = 0
-            total_val_rmse = 0.0
             for inputs, targets in val_loader:
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)       
@@ -305,10 +274,9 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
             break
 
     ### saving mechanism
-    if setting == 'standard':
-        torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_forward_DNN.pth')
-    elif setting == 'transfer_learning':
-        torch.save(model.state_dict(), f'forwardDNN/{dataset_name}_with_{hot_start_dataset_name}_hot_start_forward_DNN.pth')
+    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset_name}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
+        else f'forwardDNN/{dataset_name}_forward_DNN.pth'
+    torch.save(model.state_dict(), SAVE_PATH)
 
     print('------------------')
     print('TRAINING COMPLETE')
@@ -328,12 +296,10 @@ def inference(model, test_loader):
     rmse_loss = []
     with torch.no_grad():
         total_loss = 0
-        total_rmse = 0
         for inputs, targets in tqdm(test_loader):
             outputs = model(inputs)
             predictions.append(outputs.cpu().numpy())
             loss = criterion(outputs, targets)
-            # print (rmse)
             rmse_loss.append(loss.cpu().numpy())
             total_loss += loss.item()
         avg_loss = total_loss / len(test_loader)

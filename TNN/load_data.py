@@ -1,6 +1,6 @@
 import numpy as np
 
-def load_data(dataset_name):
+def get_data_paths(dataset_name):
 
     if dataset_name == 'inconel':
         train_output_path = '/home/vpatro/TNN_data/inconel_data/input_train_data.npy'
@@ -23,6 +23,11 @@ def load_data(dataset_name):
         test_input_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/input_test_data.npy'
         test_output_path = '/home/vpatro/TNN_data/airfoil_Re_3_6_data/output_test_data.npy'
 
+    return train_input_path, train_output_path, test_input_path, test_output_path
+
+def load_data(dataset_name):
+
+    train_input_path, train_output_path, test_input_path, test_output_path = get_data_paths(dataset_name)
 
     X_train = np.load(train_input_path)
     y_train = np.load(train_output_path)

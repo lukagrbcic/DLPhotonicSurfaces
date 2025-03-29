@@ -61,12 +61,12 @@ class tandem_model():
         self.device = device
         self.rmse_loss = rmse_loss
 
+        self.forward = None
         self.inverse = None
     
     def get_torch_dataloader(self, data, inference=False):
         
         X, y = data
-        
         X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
         y_tensor = torch.tensor(y, dtype=torch.float32).to(self.device)
 
@@ -87,8 +87,6 @@ class tandem_model():
                 return out
             else:
                 emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                # print('parameter preds shape: ', parameter_preds.shape)
-                # print('parameter targets shape: ', parameter_targets.shape)
                 laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
 
             return laser_param_term + lambda_val*emissivity_term
@@ -128,6 +126,7 @@ class tandem_model():
             param.requires_grad = False
 
         print('Forward DNN frozen')
+        self.forward = forward
 
 
         ##############################
@@ -280,7 +279,7 @@ class tandem_model():
         ##################
 
         forward_descriptor = 'from_scratch'
-        forward_descriptor = 'hot_start_' + self.forward_DNN_hot_start_dataset if self.forward_DNN_hot_start else forward_descriptor
+        forward_descriptor = f'{self.forward.num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
             path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
@@ -333,10 +332,9 @@ class tandem_model():
 
         forward.load_state_dict(torch.load(self.forward_DNN[0]))
 
-        forward_DNN_save_descriptor = 'from_scratch'
+        
         if self.forward_DNN_hot_start:
             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start_dataset}')
-            forward_DNN_save_descriptor = f'hot_start_{self.forward_DNN_hot_start_dataset}'
         else:
             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
              
@@ -348,12 +346,14 @@ class tandem_model():
 
         print('Forward DNN frozen')
 
+        forward_descriptor = 'from_scratch'
+        forward_descriptor = f'{self.forward.num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             print()
             print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_DNN_save_descriptor}.pth'
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         else: # standard configuration
-            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_DNN_save_descriptor}{self.forward_DNN_hot_start_dataset}.pth'
+            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
         inverse.load_state_dict(torch.load(inverse_path))
 
         forward.eval()
