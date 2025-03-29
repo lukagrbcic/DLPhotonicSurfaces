@@ -42,7 +42,7 @@ def inverse_DNN_tl_config_check(args):
     if args.forward_DNN_hot_start:
         assert args.forward_DNN_hot_start_dataset == args.inverse_DNN_hot_start_dataset
     else:
-        assert args.forward_DNN_from_scratch
+        assert args.forward_DNN_hot_start == False
     print(f'Inverse DNN weights were hot started with {args.inverse_DNN_hot_start_dataset}')
     print(f'{args.num_inverse_layers_to_transfer} layers of inverse DNN will be transferred and frozen')
     print('\n -------------------- \n')

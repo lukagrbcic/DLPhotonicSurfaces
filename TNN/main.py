@@ -182,7 +182,7 @@ def main():
         forward_hot_start = 'hot_start_' + args.forward_DNN_hot_start_dataset if args.forward_DNN_hot_start else forward_hot_start
         inverse_hot_start = 'hot_start_' + args.inverse_DNN_hot_start_dataset if args.configuration == 'transfer_learning' else 'from_scratch'
         forward_transfer_descriptor = ''
-        forward_transfer_descriptor = f'{models[-1].forward.num_layers_to_transfer}_layers_transferred_' if args.forward_DNN_hot_start else forward_transfer_descriptor
+        forward_transfer_descriptor = f'{args.num_forward_layers_transferred}_layers_transferred_' if args.forward_DNN_hot_start else forward_transfer_descriptor
         outfile = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_forwardDNN_{forward_transfer_descriptor}{forward_hot_start}_inverseDNN_{inverse_hot_start}.json'
 
         obj = {'mean train loss': mean_train_loss,
