@@ -5,7 +5,7 @@ def make_results_df(dataset, hot_start_dataset, results_dir, num_inverse_layers_
 
     df = pd.DataFrame()
     df['Config'] = ['Forward Model', 'Forward Model', 'Standard', 'Standard', 'TL - 1', 'TL - 2']
-    df['Forward DNN'] = ['from_scratch', hot_start_dataset, 'from_scratch', dataset, 'from_scratch', hot_start_dataset]
+    df['Forward DNN'] = ['from_scratch', hot_start_dataset, 'from_scratch', hot_start_dataset, 'from_scratch', hot_start_dataset]
     df['Inverse DNN'] = ['n/a', 'n/a', 'from_scratch', 'from_scratch', hot_start_dataset, hot_start_dataset]
 
     standard_fwd_from_scratch_path = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_from_scratch.json'
