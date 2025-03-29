@@ -118,7 +118,7 @@ class tandem_model():
         if self.forward_DNN_hot_start:
             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with a hot start on {self.forward_DNN_hot_start_dataset}')
         else:
-             print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
+            print(f'Loading forward_DNN pretrained on {self.forward_DNN_dataset} with no hot start')
 
         forward.eval()
         ### deactivating gradients for forward DNN so it's not experiencing backprop
@@ -279,7 +279,7 @@ class tandem_model():
         ##################
 
         forward_descriptor = 'from_scratch'
-        forward_descriptor = f'{self.forward.num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
+        forward_descriptor = f'{self.forward[0].num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
             path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
@@ -346,13 +346,15 @@ class tandem_model():
 
         print('Forward DNN frozen')
 
+        
+
         forward_descriptor = 'from_scratch'
-        forward_descriptor = f'{self.forward.num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
+        forward_descriptor = f'{self.forward[0].num_layers_to_transfer}_{self.forward_DNN_hot_start_dataset}_hot_start_' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
-            print()
-            print(f'Transfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
+            print(f'\nTransfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
             inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         else: # standard configuration
+            os.makedirs('inverseDNN/', exist_ok=True)
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
         inverse.load_state_dict(torch.load(inverse_path))
 

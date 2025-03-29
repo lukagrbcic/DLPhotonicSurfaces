@@ -9,7 +9,7 @@ sys.path.insert(0, 'src')
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 import tnn as tnn
-from load_data import load_data
+from load_data import get_data_paths_for_tnn_training, load_data_for_tnn_training
 
 import argparse
 import pandas as pd

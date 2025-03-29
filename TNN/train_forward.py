@@ -11,13 +11,14 @@ from sklearn.decomposition import PCA
 import joblib
 from tqdm import tqdm
 import xgboost
+import os
 
 
 import sys
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
 from config import load_config
-from load_data import load_data, get_data_paths
+from load_data import get_paths_for_forward_training
 
 seed = 23
 torch.manual_seed(seed)
@@ -56,7 +57,7 @@ def main():
         help = 'enter train to do training followed by inference and enter inference to do inference on a saved model'
     )
     parser.add_argument(
-        '--hot_start_model_path',
+        '--hot_start_dataset',
         type=str,
     )
     parser.add_argument(
@@ -68,7 +69,7 @@ def main():
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    train_input_path, train_output_path, test_input_path, test_output_path = get_data_paths(args.dataset_name)
+    train_input_path, train_output_path, test_input_path, test_output_path = get_paths_for_forward_training(args.dataset_name)
     train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
     if args.mode == 'train':
@@ -90,14 +91,13 @@ def main():
             print()
 
             # load hot start weights into model
-            hot_start_model = invfow.forwardMLP(input_size, output_size).to(device) 
-            hot_start_model.load_state_dict(torch.load(args.hot_start_model_path))
+            hot_start_model = invfow.forwardMLP(input_size, output_size).to(device)
+            hot_start_model_path = f'forwardDNN/{args.hot_start_dataset}_forward_DNN.pth'
+            hot_start_model.load_state_dict(torch.load(hot_start_model_path))
 
-            hot_start_dataset = args.hot_start_model_path.split('/')[1].split('_')[0]
-            hot_start_dataset = hot_start_dataset + '_steel' if hot_start_dataset == 'stainless' else hot_start_dataset
-            print(f'TRANSFERING {hot_start_dataset} weights for {args.dataset_name} task')
+            print(f'TRANSFERING {args.hot_start_dataset} weights for {args.dataset_name} task')
 
-            assert hot_start_dataset != args.dataset_name
+            assert args.hot_start_dataset != args.dataset_name
 
             # doing the layer transfer
             if args.num_layers_to_transfer == 1:
@@ -134,8 +134,7 @@ def main():
                     assert p.requires_grad == True
                 count += 1
 
-            print('TRANSFER COMPLETE')
-            print()
+            print('TRANSFER COMPLETE\n')
 
             for p in model.parameters():
                 print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
@@ -148,12 +147,12 @@ def main():
                                         val_loader,
                                         args.dataset_name,
                                         setting=args.configuration,
-                                        hot_start_dataset_name=hot_start_dataset)
+                                        hot_start_dataset=args.hot_start_dataset)
 
     else:
         print('Loading pretrained model and performing inference\n')
         model = invfow.forwardMLP(input_size, output_size).to(device)
-        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset_name}_hot_start_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_forward_DNN.pth' if args.configuration == 'transfer_learning' \
         else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
         model.load_state_dict(torch.load(LOAD_PATH))
 
@@ -179,6 +178,7 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
     ## MinMaxScaler on data
     sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
+    os.makedirs('forwardDNN/', exist_ok=True)
     joblib.dump(sc, f'forwardDNN/{dataset_name}_scaler.pkl')
 
     X_val_ = sc.transform(X_val_)
@@ -217,7 +217,7 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
 def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
 
-def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset_name):
+def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset):
 
     print('------------------')
     print('-----TRAINING-----')
@@ -259,7 +259,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
         avg_val_loss = total_val_loss / len(val_loader)  # Calculate average validation loss
         val_losses.append(avg_val_loss)
 
-        print(f'Epoch {epoch+1}/{num_epochs}, Training RMSE: {avg_train_loss}, Validation RMSE: {avg_val_loss}')
+        print(f'Epoch {epoch+1}/{num_epochs}, Training RMSE: {train_losses[-1]}, Validation RMSE: {val_losses[-1]}')
         
         # Early stopping logic
         if avg_val_loss < best_loss:
@@ -274,7 +274,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
             break
 
     ### saving mechanism
-    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset_name}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
+    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
         else f'forwardDNN/{dataset_name}_forward_DNN.pth'
     torch.save(model.state_dict(), SAVE_PATH)
 
