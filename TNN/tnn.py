@@ -102,7 +102,7 @@ class tandem_model():
         
         X_train, X_val, y_train, y_val = train_test_split(self.train_data[0], 
                                                           self.train_data[1],
-                                                          test_size=0.1, 
+                                                          test_size=0.2, 
                                                           shuffle=False, 
                                                           random_state=self.train_val_split_seed)
                         
@@ -290,7 +290,7 @@ class tandem_model():
         forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
-            path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
+            path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         elif self.configuration == 'standard':
             os.makedirs('inverseDNN/', exist_ok=True)
             path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
