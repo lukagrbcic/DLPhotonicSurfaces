@@ -15,7 +15,7 @@ conda activate dnn_env
 ## forward DNN trained from SCRATCH on inconel
 
 # python main.py config dataset fwd_dset fwd_hot_start
-python main.py standard inconel inconel --forward_DNN_from_scratch --mode train
+# python main.py standard inconel inconel --forward_DNN_from_scratch --mode train
 
 ### For inconel task: training from scratch an inverse DNN with a 
 ### forward DNN (trained on inconel task) that was hot started on stainless steel
@@ -37,8 +37,8 @@ python main.py standard inconel inconel --forward_DNN_from_scratch --mode train
 # ### for inconel task
 # ### forward DNN starting from scratch
 # ### inverse DNN hot started on SS
-# python main.py transfer_learning inconel inconel --forward_DNN_from_scratch --inverse_DNN_hot_start_dataset stainless_steel \
-#     --mode train --num_inverse_layers_to_transfer 1
+python main.py transfer_learning inconel inconel --forward_DNN_from_scratch --inverse_DNN_hot_start_dataset stainless_steel \
+    --mode train --num_inverse_layers_to_transfer 1
 
 # # # ### for inconel task
 # # # ### forward DNN hot started on SS

@@ -150,7 +150,7 @@ class tandem_model():
             # loading the entire pretrained model to prepare for selective weight transfer
             ## in particular, when we pull an inverse DNN to hot start, it should be a model
             ## that was trained from scratch by a forward DNN that was trained from scratch
-            hot_start_model_path = f'../inverseDNN/{dataset_name}_inverse_from_scratch_forward_from_scratch.pth'
+            hot_start_model_path = f'src/inverseDNN/{dataset_name}_inverse_from_scratch_forward_from_scratch.pth'
 
             pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
@@ -209,7 +209,7 @@ class tandem_model():
         elif self.configuration == 'standard':
             inverse = self.inverse_architecture.__class__(input_size, output_size)
             # torch.save(inverse.state_dict().copy(), 'inverse_DNN_starting_wts.pth')
-            starting_weights_path = '../inverse_DNN_starting_wts.pth'
+            starting_weights_path = 'src/inverse_DNN_starting_wts.pth'
             inverse.load_state_dict(torch.load(starting_weights_path))
             print('Initializing inverse_DNN from scratch')
 
@@ -297,9 +297,7 @@ class tandem_model():
         torch.save(inverse.state_dict(), path)
 
         self.inverse_DNN = inverse
-        print()
-        print(f'Saved model to {path}')
-
+        print(f'\nSaved model to {path}')
 
         print('------------------')
         print('TRAINING COMPLETE')
@@ -313,15 +311,12 @@ class tandem_model():
     
     def test(self):
 
-        print('')
         print('------------------')
         print('-----INFERENCE----')
         print('------------------')
-        print('')
         
         print ('TESTING MODE')
-        print ('Using:', self.device)
-        print('')
+        print (f'Using: {self.device}\n')
 
         def criterion(emissivity_preds, emissivity_targets,
             parameter_preds=None, parameter_targets=None, lambda_val=0.8, loss='standard_loss'):

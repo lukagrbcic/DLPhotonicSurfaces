@@ -13,6 +13,7 @@ import DLPhotonicSurfaces.TNN.src.model.tnn as tnn
 from src.scripts.load_data import get_data_paths_for_tnn_training, load_data_for_tnn_training
 from src.scripts.model_check import forward_DNN_check
 from src.scripts.model_check import inverse_DNN_standard_config_check
+from src.scripts.model_check import inverse_DNN_tl_config_check
 
 
 import argparse
@@ -91,7 +92,6 @@ def main():
     elif args.configuration == 'transfer_learning': # transfer learning configuration
         ### if we don't give an inverse_DNN_hot_start_dataset (ie don't want to load a pretrained inverse DNN), inverse_DNN will be set to None in the tnn
             
-        from model_check import inverse_DNN_tl_config_check
         inverse_DNN_tl_config_check(args)
 
         time.sleep(2)
