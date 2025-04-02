@@ -16,9 +16,10 @@ import os
 
 import sys
 sys.path.insert(0, '../..')
-import DLPhotonicSurfaces.TNN.dnn as invfow
+import DLPhotonicSurfaces.TNN.src.model.dnn as invfow
 from DLPhotonicSurfaces.TNN.src.config import load_config
-from load_data import get_paths_for_forward_training
+
+from src.scripts.load_data import get_paths_for_forward_training
 
 seed = 23
 torch.manual_seed(seed)
@@ -92,7 +93,7 @@ def main():
 
             # load hot start weights into model
             hot_start_model = invfow.forwardMLP(input_size, output_size).to(device)
-            hot_start_model_path = f'forwardDNN/{args.hot_start_dataset}_forward_DNN.pth'
+            hot_start_model_path = f'src/forwardDNN/{args.hot_start_dataset}_forward_DNN.pth'
             hot_start_model.load_state_dict(torch.load(hot_start_model_path))
 
             print(f'TRANSFERING {args.hot_start_dataset} weights for {args.dataset_name} task')
