@@ -361,7 +361,7 @@ class tandem_model():
         forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             print(f'\nTransfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
+            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         else: # standard configuration
             os.makedirs('inverseDNN/', exist_ok=True)
             inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'

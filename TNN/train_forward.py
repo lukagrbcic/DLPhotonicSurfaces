@@ -17,7 +17,7 @@ import os
 import sys
 sys.path.insert(0, '../..')
 import DLPhotonicSurfaces.TNN.dnn as invfow
-from config import load_config
+from DLPhotonicSurfaces.TNN.src.config import load_config
 from load_data import get_paths_for_forward_training
 
 seed = 23

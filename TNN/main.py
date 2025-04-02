@@ -121,7 +121,7 @@ def main():
         inverse_DNNs_from_scratch = []
 
 
-        n_trials = 10
+        n_trials = 20
         for i in range(n_trials):
 
             tnn_model = tnn.tandem_model(
