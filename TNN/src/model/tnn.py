@@ -150,7 +150,7 @@ class tandem_model():
             # loading the entire pretrained model to prepare for selective weight transfer
             ## in particular, when we pull an inverse DNN to hot start, it should be a model
             ## that was trained from scratch by a forward DNN that was trained from scratch
-            hot_start_model_path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_from_scratch.pth'
+            hot_start_model_path = f'../inverseDNN/{dataset_name}_inverse_from_scratch_forward_from_scratch.pth'
 
             pretrained_model = self.inverse_architecture.__class__(input_size, output_size)
             pretrained_model.load_state_dict(torch.load(hot_start_model_path))
@@ -209,7 +209,7 @@ class tandem_model():
         elif self.configuration == 'standard':
             inverse = self.inverse_architecture.__class__(input_size, output_size)
             # torch.save(inverse.state_dict().copy(), 'inverse_DNN_starting_wts.pth')
-            starting_weights_path = 'inverse_DNN_starting_wts.pth'
+            starting_weights_path = '../inverse_DNN_starting_wts.pth'
             inverse.load_state_dict(torch.load(starting_weights_path))
             print('Initializing inverse_DNN from scratch')
 
@@ -289,11 +289,11 @@ class tandem_model():
         forward_descriptor = 'from_scratch'
         forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
-            os.makedirs(f'transfer_learning_models/{self.dataset_name}', exist_ok=True)
-            path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
+            os.makedirs(f'../../transfer_learning_models/{self.dataset_name}', exist_ok=True)
+            path = f'../../transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         elif self.configuration == 'standard':
-            os.makedirs('inverseDNN/', exist_ok=True)
-            path = f'inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
+            os.makedirs('../inverseDNN/', exist_ok=True)
+            path = f'../inverseDNN/{dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
         torch.save(inverse.state_dict(), path)
 
         self.inverse_DNN = inverse
@@ -330,8 +330,6 @@ class tandem_model():
                 return out
             else:
                 emissivity_term = torch.sqrt(torch.mean((emissivity_preds - emissivity_targets) ** 2))
-                # print('parameter preds shape: ', parameter_preds.shape)
-                # print('parameter targets shape: ', parameter_targets.shape)
                 laser_param_term = torch.sqrt(torch.mean((parameter_preds - parameter_targets) ** 2))
 
             return laser_param_term + lambda_val*emissivity_term
@@ -361,10 +359,10 @@ class tandem_model():
         forward_descriptor = f'{self.num_forward_layers_transferred}_layer_{self.forward_DNN_hot_start_dataset}_hot_start' if self.forward_DNN_hot_start else forward_descriptor
         if self.configuration == 'transfer_learning':
             print(f'\nTransfer learning -- loading inverse DNN with hot start on {self.inverse_DNN_hot_start_dataset}')
-            inverse_path = f'transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
+            inverse_path = f'../../transfer_learning_models/{self.dataset_name}/inverse_{self.num_inverse_layers_to_transfer}_layer_hot_start_{self.inverse_DNN_hot_start_dataset}_forward_{forward_descriptor}.pth'
         else: # standard configuration
             os.makedirs('inverseDNN/', exist_ok=True)
-            inverse_path = f'inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
+            inverse_path = f'../inverseDNN/{self.dataset_name}_inverse_from_scratch_forward_{forward_descriptor}.pth'
         inverse.load_state_dict(torch.load(inverse_path))
 
         forward.eval()

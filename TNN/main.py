@@ -7,9 +7,13 @@ import matplotlib.pyplot as plt
 import time
 sys.path.insert(0, 'src')
 sys.path.insert(0, '../..')
-import DLPhotonicSurfaces.TNN.dnn as invfow
-import tnn as tnn
-from load_data import get_data_paths_for_tnn_training, load_data_for_tnn_training
+import DLPhotonicSurfaces.TNN.src.model.dnn as invfow
+import DLPhotonicSurfaces.TNN.src.model.tnn as tnn
+
+from src.scripts.load_data import get_data_paths_for_tnn_training, load_data_for_tnn_training
+from src.scripts.model_check import forward_DNN_check
+from src.scripts.model_check import inverse_DNN_standard_config_check
+
 
 import argparse
 import pandas as pd
@@ -74,15 +78,12 @@ def main():
 
     forward_architecture = invfow.forwardMLP(output_size, input_size).to(device)
     inverse_architecture = invfow.inverseMLP(input_size, output_size).to(device)
-    
-    from model_check import forward_DNN_check
 
     forward_DNN = forward_DNN_check(args)
 
     # no transfer learning configuration, inverse DNN weights initialized from scratch
     if args.configuration == 'standard':
 
-        from model_check import inverse_DNN_standard_config_check
         inverse_DNN_standard_config_check(args)        
 
         time.sleep(2)

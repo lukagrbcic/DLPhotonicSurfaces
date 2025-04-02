@@ -2,17 +2,17 @@ import joblib
 
 def forward_DNN_check(args):
 
-    forward_scaler_path = f'forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
+    forward_scaler_path = f'../forwardDNN/{args.forward_DNN_dataset}_scaler.pkl'
     scaler = joblib.load(forward_scaler_path)
     print(f"Scaler selected is for forward_DNN trained on {args.forward_DNN_dataset}")
 
     if args.forward_DNN_hot_start:
         ### either load the forward DNN that was hot started
-        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{args.num_forward_layers_transferred}_layer_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
+        LOAD_PATH = f'../forwardDNN/{args.dataset_name}_with_{args.num_forward_layers_transferred}_layer_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
         print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with a {args.num_forward_layers_transferred} layer hot start from {args.forward_DNN_hot_start_dataset}")
     else:
         ### or use the one that was trained from scratch
-        LOAD_PATH = f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
+        LOAD_PATH = f'../forwardDNN/{args.dataset_name}_forward_DNN.pth'
         print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with no hot start")
     print('Forward DNN frozen now')
 
