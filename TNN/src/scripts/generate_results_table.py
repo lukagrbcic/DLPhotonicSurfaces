@@ -8,22 +8,32 @@ def make_results_df(dataset, hot_start_dataset, results_dir, num_inverse_layers_
     df['Forward DNN'] = ['from_scratch', hot_start_dataset, 'from_scratch', hot_start_dataset, 'from_scratch', hot_start_dataset]
     df['Inverse DNN'] = ['n/a', 'n/a', 'from_scratch', 'from_scratch', hot_start_dataset, hot_start_dataset]
 
-    standard_fwd_from_scratch_path = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_from_scratch.json'
-    standard_fwd_hot_start = f'{results_dir}/standard_{dataset}_dataset_forwardDNN_{num_forward_layers_transferred}_layers_{hot_start_dataset}_hot_start_inverseDNN_from_scratch.json'
+    standard_fwd_from_scratch_path = f'../{results_dir}/standard_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_from_scratch.json'
+    standard_fwd_hot_start = f'../{results_dir}/standard_{dataset}_dataset_forwardDNN_{num_forward_layers_transferred}_layers_{hot_start_dataset}_hot_start_inverseDNN_from_scratch.json'
 
-    tl_1_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_hot_start_{hot_start_dataset}.json'
-    tl_2_path = f'{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_{num_forward_layers_transferred}_layers_{hot_start_dataset}_hot_start_inverseDNN_hot_start_{hot_start_dataset}.json'
+    tl_1_path = f'../{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_from_scratch_inverseDNN_hot_start_{hot_start_dataset}.json'
+    tl_2_path = f'../{results_dir}/{num_inverse_layers_to_transfer}_layers_transferred/transfer_learning_{dataset}_dataset_forwardDNN_{num_forward_layers_transferred}_layers_{hot_start_dataset}_hot_start_inverseDNN_hot_start_{hot_start_dataset}.json'
 
     
+    if num_forward_layers_transferred == 1:
+        if dataset == 'inconel':
+            train_losses = [0.027089, 0.02697]
+            val_losses = [0.02755, 0.02774]
+            test_losses = [0.02145, 0.02201]
+        elif dataset == 'stainless_steel':
+            train_losses = [0.03525, 0.03316]
+            val_losses = [0.03434, 0.03238]
+            test_losses = [0.02893, 0.02623]
+    elif num_forward_layers_transferred == 2:
+        if dataset == 'inconel':
+            train_losses = [0.027089, 0.03004]
+            val_losses = [0.02755, 0.03165]
+            test_losses = [0.02145, 0.02497]
+        elif dataset == 'stainless_steel':
+            train_losses = [0.03525, 0.03899]
+            val_losses = [0.03434, 0.03873]
+            test_losses = [0.02893, 0.03126]
 
-    if dataset == 'inconel':
-        train_losses = [0.027089, 0.02697]
-        val_losses = [0.02755, 0.02774]
-        test_losses = [0.02145, 0.02201]
-    elif dataset == 'stainless_steel':
-        train_losses = [0.03525, 0.03316]
-        val_losses = [0.03434, 0.03238]
-        test_losses = [0.02893, 0.02623]
 
 
     train_std = [0.0, 0.0]
