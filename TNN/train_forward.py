@@ -66,6 +66,11 @@ def main():
         type=int,
         default=1
     )
+    parser.add_argument(
+        '--hot_start_type',
+        type=str,
+        default='partial'
+    )
 
     args = parser.parse_args()
 
@@ -84,62 +89,20 @@ def main():
         
         ### we are hot starting
         elif args.configuration == 'transfer_learning':
-            print()
-            print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
-            # random weights
-            model = invfow.forwardMLP(input_size, output_size, args.num_layers_to_transfer).to(device)            
-            print(model)
-            print()
+            model = transfer_layers(args, input_size, output_size, device)
 
-            # load hot start weights into model
-            hot_start_model = invfow.forwardMLP(input_size, output_size).to(device)
-            hot_start_model_path = f'src/forwardDNN/{args.hot_start_dataset}_forward_DNN.pth'
-            hot_start_model.load_state_dict(torch.load(hot_start_model_path))
+        count = 0
+        for p in model.parameters():
+            if count < args.num_layers_to_transfer*2:
+                assert p.requires_grad == False
+            else:
+                assert p.requires_grad == True
+            count += 1
 
-            print(f'TRANSFERING {args.hot_start_dataset} weights for {args.dataset_name} task')
+        for p in model.parameters():
+            print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
 
-            assert args.hot_start_dataset != args.dataset_name
-
-            # doing the layer transfer
-            if args.num_layers_to_transfer == 1:
-                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
-
-            elif args.num_layers_to_transfer == 2:
-                model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
-                model.linear2.load_state_dict(hot_start_model.linear2.state_dict())
-
-            count = 0
-            for p in model.parameters():
-                if count < args.num_layers_to_transfer*2:
-                    p.requires_grad = False
-                count += 1
-
-            ### verifying that transfer done properly
-
-            i = 0
-            for key in model.state_dict().keys():
-                if i < args.num_layers_to_transfer*2:
-                    ## verifying transferred layers are the same
-                    assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key])
-                    print(f'Parameters for {key} were transferred and match exactly')
-                else:
-                    assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key]) == False
-                    print(f'Parameters for {key} were not transferred')
-                i += 1
-
-            count = 0
-            for p in model.parameters():
-                if count < args.num_layers_to_transfer*2:
-                    assert p.requires_grad == False
-                else:
-                    assert p.requires_grad == True
-                count += 1
-
-            print('TRANSFER COMPLETE\n')
-
-            for p in model.parameters():
-                print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
-
+        print('TRANSFER COMPLETE\n')
 
         config = load_config(args.config_file_path)
         train_losses, val_losses = train(model,
@@ -217,6 +180,56 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
 
 def criterion(outputs, targets):
     return torch.sqrt(torch.mean((outputs - targets) ** 2))
+
+def transfer_layers(args, input_size, output_size, device):
+    print()
+    print(f'PERFORMING TRANSFER OF FIRST {args.num_layers_to_transfer} LAYERS')
+    # random weights
+    model = invfow.forwardMLP(input_size, output_size, args.num_layers_to_transfer).to(device)            
+    print(model)
+    print()
+
+    # load hot start weights into model
+    hot_start_model = invfow.forwardMLP(input_size, output_size).to(device)
+    hot_start_model_path = f'src/forwardDNN/{args.hot_start_dataset}_forward_DNN.pth'
+    print(f'TRANSFERING {args.hot_start_dataset} weights for {args.dataset_name} task')
+
+    if args.hot_start_type == 'partial':
+        print('DOING PARTIAL HOT START')
+        hot_start_model.load_state_dict(torch.load(hot_start_model_path))
+
+        assert args.hot_start_dataset != args.dataset_name
+        # doing the layer transfer
+        if args.num_layers_to_transfer == 1:
+            model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+
+        elif args.num_layers_to_transfer == 2:
+            model.linear1.load_state_dict(hot_start_model.linear1.state_dict())
+            model.linear2.load_state_dict(hot_start_model.linear2.state_dict())
+
+        ### verifying transfer done properly
+        i = 0
+        for key in model.state_dict().keys():
+            if i < args.num_layers_to_transfer*2:
+                ## verifying transferred layers are the same
+                assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key])
+                print(f'Parameters for {key} were transferred and match exactly')
+            else:
+                assert torch.equal(model.state_dict()[key], hot_start_model.state_dict()[key]) == False
+                print(f'Parameters for {key} were not transferred')
+            i += 1
+    elif args.hot_start_type == 'full':
+        print('DOING FULL HOT START')
+        model.load_state_dict(torch.load(hot_start_model_path))
+
+    count = 0
+    for p in model.parameters():
+        if count < args.num_layers_to_transfer*2:
+            p.requires_grad = False
+        count += 1
+
+    return model
+
 
 def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset):
 

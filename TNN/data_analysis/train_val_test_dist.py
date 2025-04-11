@@ -30,7 +30,7 @@ def make_train_val_test_dist(dataset: str):
 
     x_train, x_val, y_train, y_val = train_test_split(train_input, 
                                                             train_output,
-                                                            test_size=0.1, 
+                                                            test_size=0.2, 
                                                             shuffle=False, 
                                                             random_state=23)
 
