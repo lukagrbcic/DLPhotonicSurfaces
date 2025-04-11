@@ -78,50 +78,61 @@ def main():
     train_input_path, train_output_path, test_input_path, test_output_path = get_paths_for_forward_training(args.dataset_name)
     train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
 
-    if args.mode == 'train':
-        print('Performing training followed by inference')
-        print('\n')
+    train_losses = []
+    val_losses = []
+    epochs_to_converge = []
+    test_losses = []
+    n_trials = 1
+    for i in range(n_trials):
+        if args.mode == 'train':
+            print('Performing training followed by inference\n')
+            ### we are training a forward DNN from scratch
+            if args.configuration == 'standard':
+                model = invfow.forwardMLP(input_size, output_size).to(device)  
+                print(model)
+            
+            ### we are hot starting
+            elif args.configuration == 'transfer_learning':
+                model = transfer_layers(args, input_size, output_size, device)
 
-        ### we are training a forward DNN from scratch
-        if args.configuration == 'standard':
-            model = invfow.forwardMLP(input_size, output_size).to(device)  
-            print(model)
-        
-        ### we are hot starting
-        elif args.configuration == 'transfer_learning':
-            model = transfer_layers(args, input_size, output_size, device)
+            count = 0
+            for p in model.parameters():
+                if count < args.num_layers_to_transfer*2:
+                    assert p.requires_grad == False
+                else:
+                    assert p.requires_grad == True
+                count += 1
 
-        count = 0
-        for p in model.parameters():
-            if count < args.num_layers_to_transfer*2:
-                assert p.requires_grad == False
-            else:
-                assert p.requires_grad == True
-            count += 1
+            for p in model.parameters():
+                print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
 
-        for p in model.parameters():
-            print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
+            print('TRANSFER COMPLETE\n')
 
-        print('TRANSFER COMPLETE\n')
+            config = load_config(args.config_file_path)
+            train_loss, val_loss, epochs = train(model,
+                                            config,
+                                            train_loader,
+                                            val_loader,
+                                            args.dataset_name,
+                                            setting=args.configuration,
+                                            hot_start_dataset=args.hot_start_dataset,
+                                            hot_start_type=args.hot_start_type)
 
-        config = load_config(args.config_file_path)
-        train_losses, val_losses = train(model,
-                                        config,
-                                        train_loader,
-                                        val_loader,
-                                        args.dataset_name,
-                                        setting=args.configuration,
-                                        hot_start_dataset=args.hot_start_dataset)
+            train_losses.append(train_loss[-1])
+            val_losses.append(val_loss[-1])
+            epochs_to_converge.append([-1])
 
     else:
         print('Loading pretrained model and performing inference\n')
         model = invfow.forwardMLP(input_size, output_size).to(device)
-        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
         else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
         model.load_state_dict(torch.load(LOAD_PATH))
 
-    predictions, rmse_losses = inference(model, test_loader)
-    plot_results(train_losses, val_losses)
+    predictions, rmse_loss = inference(model, test_loader)
+    test_losses.append(rmse_loss)
+
+    plot_results(train_loss, val_loss)
 
 def build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
 
@@ -231,7 +242,7 @@ def transfer_layers(args, input_size, output_size, device):
     return model
 
 
-def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset):
+def train(model, config, train_loader, val_loader, dataset_name, setting, hot_start_dataset, hot_start_type):
 
     print('------------------')
     print('-----TRAINING-----')
@@ -247,6 +258,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
     val_losses = []
 
     num_epochs = config['model_params']['n_epochs']
+    epochs_to_converge = 0
     for epoch in range(num_epochs):
         model.train()
         epoch_train_loss = 0.0
@@ -283,12 +295,14 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
         else:
             epochs_no_improve += 1
         
+        epochs_to_converge = epoch
         if epochs_no_improve == early_stopping_patience:
             print(f'Early stopping at epoch {epoch+1}')
             break
 
+
     ### saving mechanism
-    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
+    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_{hot_start_type.upper()}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
         else f'forwardDNN/{dataset_name}_forward_DNN.pth'
     torch.save(model.state_dict(), SAVE_PATH)
 
@@ -296,7 +310,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
     print('TRAINING COMPLETE')
     print('------------------')
 
-    return train_losses, val_losses
+    return train_losses, val_losses, epochs_to_converge
 
 def inference(model, test_loader):
 
@@ -315,9 +329,6 @@ def inference(model, test_loader):
             predictions.append(outputs.cpu().numpy())
             loss = criterion(outputs, targets)
             rmse_loss.append(loss.cpu().numpy())
-            total_loss += loss.item()
-        avg_loss = total_loss / len(test_loader)
-        print(f'Average Test Loss: {avg_loss}')
 
     print ('Mean RMSE:', np.mean(rmse_loss))
     print ('Std RMSE:', np.std(rmse_loss))
@@ -331,7 +342,7 @@ def inference(model, test_loader):
     print('INFERENCE COMPLETE')
     print('------------------')
 
-    return predictions, rmse_loss
+    return predictions, np.mean(rmse_loss)
 
 def plot_results(train_losses, val_losses):
     import matplotlib.pyplot as plt
