@@ -69,8 +69,7 @@ def main():
     )
     parser.add_argument(
         '--hot_start_type',
-        type=str,
-        default='partial'
+        type=str
     )
 
     args = parser.parse_args()
@@ -83,7 +82,7 @@ def main():
     val_losses = []
     epochs_to_converge = []
     test_losses = []
-    
+
     n_trials = 2
     for i in range(n_trials):
         if args.mode == 'train':
@@ -97,18 +96,18 @@ def main():
             elif args.configuration == 'transfer_learning':
                 model = transfer_layers(args, input_size, output_size, device)
 
-            count = 0
-            for p in model.parameters():
-                if count < args.num_layers_to_transfer*2:
-                    assert p.requires_grad == False
-                else:
-                    assert p.requires_grad == True
-                count += 1
+                count = 0
+                for p in model.parameters():
+                    if count < args.num_layers_to_transfer*2:
+                        assert p.requires_grad == False
+                    else:
+                        assert p.requires_grad == True
+                    count += 1
 
-            for p in model.parameters():
-                print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
+                for p in model.parameters():
+                    print(f'Shape of weight matrix: {p.data.shape}, Requires grad: {p.requires_grad}')
 
-            print('TRANSFER COMPLETE\n')
+                print('TRANSFER COMPLETE\n')
 
             config = load_config(args.config_file_path)
             train_loss, val_loss, epochs = train(model,
