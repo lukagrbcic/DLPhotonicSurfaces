@@ -12,6 +12,7 @@ import joblib
 from tqdm import tqdm
 import xgboost
 import os
+import json
 
 
 import sys
@@ -21,11 +22,11 @@ from DLPhotonicSurfaces.TNN.src.config import load_config
 
 from src.scripts.load_data import get_paths_for_forward_training
 
-seed = 23
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-np.random.seed(seed)
-torch.backends.cudnn.deterministic = True
+# seed = 23
+# torch.manual_seed(seed)
+# torch.cuda.manual_seed(seed)
+# np.random.seed(seed)
+# torch.backends.cudnn.deterministic = True
 
 import argparse
 
@@ -82,7 +83,8 @@ def main():
     val_losses = []
     epochs_to_converge = []
     test_losses = []
-    n_trials = 1
+    
+    n_trials = 2
     for i in range(n_trials):
         if args.mode == 'train':
             print('Performing training followed by inference\n')
@@ -131,6 +133,40 @@ def main():
 
     predictions, rmse_loss = inference(model, test_loader)
     test_losses.append(rmse_loss)
+
+    mean_train_loss = np.mean(train_losses)
+    mean_val_loss = np.mean(val_losses)
+    mean_test_loss = np.mean(test_losses)
+    mean_epochs = np.mean(epochs_to_converge)
+
+    stdev_train_loss = np.std(train_losses)
+    stdev_val_loss = np.std(val_losses)
+    stdev_test_loss = np.std(test_losses)
+    stdev_epochs = np.std(epochs_to_converge)
+
+    obj = {'mean train loss': mean_train_loss,
+               'mean val loss': mean_val_loss,
+               'test loss': mean_test_loss,
+               'train loss std': stdev_train_loss,
+               'val loss std': stdev_val_loss,
+               'test loss std': stdev_test_loss,
+               'epochs': mean_epochs,
+               'epochs std': stdev_epochs
+               }
+
+    result_dir = 'forwardDNN_results'
+    os.makedirs(result_dir, exist_ok=True)
+    outfile_json = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset.json' if args.configuration == 'standard' else \
+                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_\
+                    {args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.json' 
+    outfile_npz = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset.npz' if args.configuration == 'standard' else \
+                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_\
+                    {args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.npz' 
+               
+    with open(outfile_json, 'w') as f:
+            json.dump(obj, f)
+
+    np.savez(outfile_npz, train=train_losses, val=val_losses, test=test_losses, epoch=epochs)
 
     plot_results(train_loss, val_loss)
 
