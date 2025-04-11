@@ -123,15 +123,15 @@ def main():
             val_losses.append(val_loss[-1])
             epochs_to_converge.append([-1])
 
-    else:
-        print('Loading pretrained model and performing inference\n')
-        model = invfow.forwardMLP(input_size, output_size).to(device)
-        LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
-        else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
-        model.load_state_dict(torch.load(LOAD_PATH))
+        else:
+            print('Loading pretrained model and performing inference\n')
+            model = invfow.forwardMLP(input_size, output_size).to(device)
+            LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+            else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
+            model.load_state_dict(torch.load(LOAD_PATH))
 
-    predictions, rmse_loss = inference(model, test_loader)
-    test_losses.append(rmse_loss)
+        predictions, rmse_loss = inference(model, test_loader)
+        test_losses.append(rmse_loss)
 
     mean_train_loss = np.mean(train_losses)
     mean_val_loss = np.mean(val_losses)
