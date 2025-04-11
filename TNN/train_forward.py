@@ -121,7 +121,7 @@ def main():
 
             train_losses.append(train_loss[-1])
             val_losses.append(val_loss[-1])
-            epochs_to_converge.append([-1])
+            epochs_to_converge.append(epochs)
 
         else:
             print('Loading pretrained model and performing inference\n')
@@ -143,24 +143,22 @@ def main():
     stdev_test_loss = np.std(test_losses)
     stdev_epochs = np.std(epochs_to_converge)
 
-    obj = {'mean train loss': mean_train_loss,
-               'mean val loss': mean_val_loss,
-               'test loss': mean_test_loss,
-               'train loss std': stdev_train_loss,
-               'val loss std': stdev_val_loss,
-               'test loss std': stdev_test_loss,
-               'epochs': mean_epochs,
-               'epochs std': stdev_epochs
+    obj = {'mean train loss': float(mean_train_loss),
+               'mean val loss': float(mean_val_loss),
+               'test loss': float(mean_test_loss),
+               'train loss std': float(stdev_train_loss),
+               'val loss std': float(stdev_val_loss),
+               'test loss std': float(stdev_test_loss),
+               'epochs': float(mean_epochs),
+               'epochs std': float(stdev_epochs)
                }
 
     result_dir = 'forwardDNN_results'
     os.makedirs(result_dir, exist_ok=True)
     outfile_json = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset.json' if args.configuration == 'standard' else \
-                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_\
-                    {args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.json' 
+                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_{args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.json' 
     outfile_npz = f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset.npz' if args.configuration == 'standard' else \
-                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_\
-                    {args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.npz' 
+                   f'{result_dir}/{args.configuration}_{args.dataset_name}_dataset_{args.num_layers_to_transfer}_layer_{args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start.npz' 
                
     with open(outfile_json, 'w') as f:
             json.dump(obj, f)
@@ -330,7 +328,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
         else:
             epochs_no_improve += 1
         
-        epochs_to_converge = epoch
+        epochs_to_converge = epoch+1
         if epochs_no_improve == early_stopping_patience:
             print(f'Early stopping at epoch {epoch+1}')
             break

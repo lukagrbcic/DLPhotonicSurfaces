@@ -14,7 +14,7 @@ conda activate dnn_env
 # python train_forward.py stainless_steel standard configs/forward/forward.yaml --mode train
 
 ### INCONEL TASK WITH STAINLESS STEEL PARTIAL HOT START
-python train_forward.py inconel transfer_learning configs/forward/forward.yaml --hot_start_dataset stainless_steel --num_layers_to_transfer 2 --hot_start_type partial
+# python train_forward.py inconel transfer_learning configs/forward/forward.yaml --hot_start_dataset stainless_steel --num_layers_to_transfer 2 --hot_start_type partial
 
 ### STAINLESS STEEL TASK WITH INCONEL PARTIAL HOT START
 python train_forward.py stainless_steel transfer_learning configs/forward/forward.yaml --hot_start_dataset inconel --num_layers_to_transfer 2 --hot_start_type partial
@@ -24,6 +24,18 @@ python train_forward.py inconel transfer_learning configs/forward/forward.yaml -
 
 ### STAINLESS STEEL TASK WITH INCONEL FULL HOT START
 python train_forward.py stainless_steel transfer_learning configs/forward/forward.yaml --hot_start_dataset inconel --num_layers_to_transfer 2 --hot_start_type full
+
+### INCONEL TASK WITH STAINLESS STEEL PARTIAL HOT START
+python train_forward.py inconel transfer_learning configs/forward/forward.yaml --hot_start_dataset stainless_steel --num_layers_to_transfer 1 --hot_start_type partial
+
+### STAINLESS STEEL TASK WITH INCONEL PARTIAL HOT START
+python train_forward.py stainless_steel transfer_learning configs/forward/forward.yaml --hot_start_dataset inconel --num_layers_to_transfer 1 --hot_start_type partial
+
+### INCONEL TASK WITH STAINLESS STEEL FULL HOT START
+python train_forward.py inconel transfer_learning configs/forward/forward.yaml --hot_start_dataset stainless_steel --num_layers_to_transfer 1 --hot_start_type full
+
+### STAINLESS STEEL TASK WITH INCONEL FULL HOT START
+python train_forward.py stainless_steel transfer_learning configs/forward/forward.yaml --hot_start_dataset inconel --num_layers_to_transfer 1 --hot_start_type full
 
 
 
