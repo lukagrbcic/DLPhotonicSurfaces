@@ -83,7 +83,7 @@ def main():
     epochs_to_converge = []
     test_losses = []
 
-    n_trials = 2
+    n_trials = 20
     for i in range(n_trials):
         if args.mode == 'train':
             print('Performing training followed by inference\n')
@@ -126,7 +126,7 @@ def main():
         else:
             print('Loading pretrained model and performing inference\n')
             model = invfow.forwardMLP(input_size, output_size).to(device)
-            LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+            LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
             else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
             model.load_state_dict(torch.load(LOAD_PATH))
 
@@ -335,7 +335,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
 
 
     ### saving mechanism
-    SAVE_PATH = f'forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_{hot_start_type.upper()}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
+    SAVE_PATH = f'src/forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_{hot_start_type.upper()}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
         else f'forwardDNN/{dataset_name}_forward_DNN.pth'
     torch.save(model.state_dict(), SAVE_PATH)
 
