@@ -76,7 +76,7 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_input_path, train_output_path, test_input_path, test_output_path = get_paths_for_forward_training(args.dataset_name)
-    train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
+    
 
     train_losses = []
     val_losses = []
@@ -85,6 +85,7 @@ def main():
 
     n_trials = 20
     for i in range(n_trials):
+        train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
         if args.mode == 'train':
             print('Performing training followed by inference\n')
             ### we are training a forward DNN from scratch
@@ -126,8 +127,8 @@ def main():
         else:
             print('Loading pretrained model and performing inference\n')
             model = invfow.forwardMLP(input_size, output_size).to(device)
-            LOAD_PATH = f'forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
-            else f'forwardDNN/{args.dataset_name}_forward_DNN.pth'
+            LOAD_PATH = f'src/forwardDNN/{args.dataset_name}_with_{model.num_layers_to_transfer}_layer_{args.hot_start_dataset}_{args.hot_start_type.upper()}_hot_start_{args.hot_start_type.upper()}_forward_DNN.pth' if args.configuration == 'transfer_learning' \
+            else f'src/forwardDNN/{args.dataset_name}_forward_DNN.pth'
             model.load_state_dict(torch.load(LOAD_PATH))
 
         predictions, rmse_loss = inference(model, test_loader)
@@ -186,8 +187,8 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
     ## MinMaxScaler on data
     sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
-    os.makedirs('forwardDNN/', exist_ok=True)
-    joblib.dump(sc, f'forwardDNN/{dataset_name}_scaler.pkl')
+    os.makedirs('src/forwardDNN/', exist_ok=True)
+    joblib.dump(sc, f'src/forwardDNN/{dataset_name}_scaler.pkl')
 
     X_val_ = sc.transform(X_val_)
 
@@ -213,7 +214,8 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
     val_dataset = TensorDataset(X_val, y_val)
     test_dataset = TensorDataset(X_test, y_test)
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=False)
+    # shuffle train loader so that we can a new order of batches every single run
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
@@ -336,7 +338,7 @@ def train(model, config, train_loader, val_loader, dataset_name, setting, hot_st
 
     ### saving mechanism
     SAVE_PATH = f'src/forwardDNN/{dataset_name}_with_{model.num_layers_to_transfer}_layer_{hot_start_dataset}_{hot_start_type.upper()}_hot_start_forward_DNN.pth' if setting == 'transfer_learning' \
-        else f'forwardDNN/{dataset_name}_forward_DNN.pth'
+        else f'src/forwardDNN/{dataset_name}_forward_DNN.pth'
     torch.save(model.state_dict(), SAVE_PATH)
 
     print('------------------')
