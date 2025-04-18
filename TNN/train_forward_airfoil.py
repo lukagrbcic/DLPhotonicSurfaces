@@ -50,40 +50,55 @@ def main():
                                                 dataset_name=args.dataset_name)
 
     if args.mode == 'train':
-        print('------------')
-        print('TRAINING BEGINNING')
-        print('------------')
         model = xgb.XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
-        model.fit(X_train, y_train)
-        y_pred_train = model.predict(X_train)
-        print('------------')
-        print('TRAINING COMPLETE')
-        print('------------')
-
-        mse = mean_squared_error(y_train, y_pred_train)
-        train_rmse = np.sqrt(mse)
+        train_rmse = model.train(model, X_train, y_train, model_path)
     
     elif args.mode == 'inference':
-        print('------------')
-        print('LOADING PRETRAINED MODEL')
-        print('------------')
         model_path = f'src/forwardDNN/{args.dataset_name}_forward_XGBR.pkl'
         model = joblib.load(model_path)
+        test_rmse = inference(model, X_test, y_test)
+
+    print('Train MSE: ', train_rmse)
+    print('Test MSE: ', test_rmse)
         
+    print('COMPLETE')
+
+def train(model, X_train, y_train, model_path):
+
+    print('------------')
+    print('TRAINING BEGINNING')
+    print('------------')
+    model.fit(X_train, y_train)
+    y_pred_train = model.predict(X_train)
+    print('------------')
+    print('TRAINING COMPLETE')
+    print('------------')
+    joblib.dump(model, model_path)
+
+    mse = mean_squared_error(y_train, y_pred_train)
+    train_rmse = np.sqrt(mse)
+
+    return train_rmse
+
+
+
+def inference(model, X_test, y_test):
+
     print('------------')
     print('INFERENCE BEGINNING')
+    print('LOADING PRETRAINED MODEL')
     print('------------')
     y_pred = model.predict(X_test)
-    print('------------')
     print('INFERENCE COMPLETE')
     print('------------')
     mse = mean_squared_error(y_test, y_pred)
     test_rmse = np.sqrt(mse)
 
-    print('Train MSE: ', train_rmse)
-    print('Test MSE: ', test_rmse)
+    return test_rmse
 
-    print('COMPLETE')
+
+
+
 
 
 
