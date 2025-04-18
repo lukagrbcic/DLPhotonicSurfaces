@@ -49,12 +49,11 @@ def main():
                                                 device=device,
                                                 dataset_name=args.dataset_name)
 
-    model = xgb.XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
-
     if args.mode == 'train':
         print('------------')
         print('TRAINING BEGINNING')
         print('------------')
+        model = xgb.XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
         model.fit(X_train, y_train)
         y_pred_train = model.predict(X_train)
         print('------------')
@@ -68,7 +67,7 @@ def main():
         print('------------')
         print('LOADING PRETRAINED MODEL')
         print('------------')
-        model_path = f'forwardDNN/{args.dataset_name}_forward_DNN.pkl'
+        model_path = f'src/forwardDNN/{args.dataset_name}_forward_XGBR.pkl'
         model = joblib.load(model_path)
         
     print('------------')
@@ -108,7 +107,7 @@ def load_data(train_input_path, train_output_path, test_input_path, test_output_
     ## MinMaxScaler on data
     sc = MinMaxScaler(clip=True)
     X_train = sc.fit_transform(X_train) 
-    joblib.dump(sc, f'forwardDNN/{dataset_name}_scaler.pkl')
+    joblib.dump(sc, f'src/forwardDNN/{dataset_name}_scaler.pkl')
 
     X_test = np.load(test_input_path)
     y_test = np.load(test_output_path)
