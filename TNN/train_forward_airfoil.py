@@ -100,9 +100,6 @@ def inference(model, X_test, y_test):
     mse = mean_squared_error(y_test, y_pred)
     test_rmse = np.sqrt(mse)
 
-    print('y pred is of type: ', type(y_pred))
-    print('test_rmse is of type: ', type(test_rmse))
-
     return y_pred, test_rmse
 
 
