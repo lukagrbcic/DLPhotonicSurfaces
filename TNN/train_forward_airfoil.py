@@ -51,15 +51,21 @@ def main():
 
     if args.mode == 'train':
         model = xgb.XGBRegressor(n_estimators=2000, max_depth=3, eta=0.1)
-        train_rmse = model.train(model, X_train, y_train, model_path)
+        model_path = f'src/forwardDNN/{args.dataset_name}_forward_XGBR.pkl'
+        y_pred_train, train_rmse = train(model, X_train, y_train, model_path)
     
     elif args.mode == 'inference':
         model_path = f'src/forwardDNN/{args.dataset_name}_forward_XGBR.pkl'
-        model = joblib.load(model_path)
-        test_rmse = inference(model, X_test, y_test)
+    
+    model = joblib.load(model_path)
+    y_pred, test_rmse = inference(model, X_test, y_test)
 
-    print('Train MSE: ', train_rmse)
-    print('Test MSE: ', test_rmse)
+    if args.mode == 'train':
+        print('Train MSE: ', train_rmse)
+        print('Test MSE: ', test_rmse)
+    else:
+        print('Test MSE: ', test_rmse)
+
         
     print('COMPLETE')
 
@@ -74,13 +80,13 @@ def train(model, X_train, y_train, model_path):
     print('TRAINING COMPLETE')
     print('------------')
     joblib.dump(model, model_path)
+    print('MODEL SAVED')
+    print('------------')
 
     mse = mean_squared_error(y_train, y_pred_train)
     train_rmse = np.sqrt(mse)
 
-    return train_rmse
-
-
+    return y_pred_train, train_rmse
 
 def inference(model, X_test, y_test):
 
@@ -94,7 +100,10 @@ def inference(model, X_test, y_test):
     mse = mean_squared_error(y_test, y_pred)
     test_rmse = np.sqrt(mse)
 
-    return test_rmse
+    print('y pred is of type: ', type(y_pred))
+    print('test_rmse is of type: ', type(test_rmse))
+
+    return y_pred, test_rmse
 
 
 
