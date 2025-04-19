@@ -43,6 +43,9 @@ def main():
     parser.add_argument('--forward_DNN_from_scratch', dest='forward_DNN_hot_start', action='store_false',
         help='forward DNN has not been hot started and was trained from scratch')
 
+    parser.add_argument('--forward_DNN_transfer_type', type=str,
+        help='enter the type of transfer that was done while training the forward DNN')
+
     parser.add_argument('--forward_DNN_hot_start_dataset', type=str, default='from_scratch',
         help='enter the name of the dataset the forward DNN was hot started with')
 

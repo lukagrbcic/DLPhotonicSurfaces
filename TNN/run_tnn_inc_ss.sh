@@ -43,7 +43,7 @@ conda activate dnn_env
 # # # ### for inconel task
 # # # ### forward DNN hot started on SS
 # # # ### inverse DNN hot started on SS
-python main.py transfer_learning inconel inconel --forward_DNN_hot_start --forward_DNN_hot_start_dataset stainless_steel \
+python main.py transfer_learning inconel inconel --forward_DNN_hot_start --forward_DNN_transfer_type partial --forward_DNN_hot_start_dataset stainless_steel \
     --inverse_DNN_hot_start_dataset stainless_steel --mode train --num_inverse_layers_to_transfer 1 --num_forward_layers_transferred 1
 
 # # # ### for ss task
@@ -55,7 +55,7 @@ python main.py transfer_learning inconel inconel --forward_DNN_hot_start --forwa
 # # # ### for ss task
 # # # ### forward DNN hot started on inconel
 # # # ### inverse DNN hot started on inconel
-python main.py transfer_learning stainless_steel stainless_steel --forward_DNN_hot_start --forward_DNN_hot_start_dataset inconel \
+python main.py transfer_learning stainless_steel stainless_steel --forward_DNN_hot_start --forward_DNN_transfer_type partial --forward_DNN_hot_start_dataset inconel \
     --inverse_DNN_hot_start_dataset inconel --mode train --num_inverse_layers_to_transfer 1 --num_forward_layers_transferred 1
 
 

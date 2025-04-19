@@ -8,7 +8,7 @@ def forward_DNN_check(args):
 
     if args.forward_DNN_hot_start:
         ### either load the forward DNN that was hot started
-        LOAD_PATH = f'src/forwardDNN/{args.dataset_name}_with_{args.num_forward_layers_transferred}_layer_{args.forward_DNN_hot_start_dataset}_hot_start_forward_DNN.pth'
+        LOAD_PATH = f'src/forwardDNN/{args.dataset_name}_with_{args.num_forward_layers_transferred}_layer_{args.forward_DNN_hot_start_dataset}_{args.forward_DNN_transfer_type}_hot_start_forward_DNN.pth'
         print(f"Forward DNN was pretrained on {args.forward_DNN_dataset} with a {args.num_forward_layers_transferred} layer hot start from {args.forward_DNN_hot_start_dataset}")
     else:
         ### or use the one that was trained from scratch

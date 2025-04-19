@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.datasets import make_regression
-from sklearn.preprocessing import *
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 import numpy as np
 from torch.optim.lr_scheduler import StepLR
 from sklearn.model_selection import train_test_split
@@ -53,6 +53,11 @@ def main():
         help='enter path to config file'
     )
     parser.add_argument(
+        'scaler_type',
+        type=str,
+        help='enter scaler type'
+    )
+    parser.add_argument(
         '--mode',
         type=str,
         default = 'train',
@@ -85,7 +90,7 @@ def main():
 
     n_trials = 20
     for i in range(n_trials):
-        train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name)
+        train_loader, val_loader, test_loader, input_size, output_size = build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, args.dataset_name, args.scaler_type)
         if args.mode == 'train':
             print('Performing training followed by inference\n')
             ### we are training a forward DNN from scratch
@@ -168,7 +173,7 @@ def main():
 
     plot_results(train_loss, val_loss)
 
-def build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name): 
+def build_dataloaders(train_input_path, train_output_path, test_input_path, test_output_path, device, dataset_name, scaler_type): 
 
     print('\n--------------------')
     print(f'LOADED {dataset_name} DATASET')
@@ -183,12 +188,17 @@ def build_dataloaders(train_input_path, train_output_path, test_input_path, test
 
     X_train_, X_val_, y_train_, y_val_ = train_test_split(X_, y_, test_size=0.2, shuffle=False, random_state=11)
 
+    if scaler_type == 'min_max':
+        sc = MinMaxScaler(clip=True)
+    elif scaler_type == 'standard':
+        sc = StandardScaler()
+    elif scaler_type == 'robust':
+        sc = RobustScaler()
+    
 
-    ## MinMaxScaler on data
-    sc = MinMaxScaler(clip=True)
     X_train_ = sc.fit_transform(X_train_) 
     os.makedirs('src/forwardDNN/', exist_ok=True)
-    joblib.dump(sc, f'src/forwardDNN/{dataset_name}_scaler.pkl')
+    joblib.dump(sc, f'src/forwardDNN/{dataset_name}_{scaler_type}_scaler.pkl')
 
     X_val_ = sc.transform(X_val_)
 
