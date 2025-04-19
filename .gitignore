@@ -53,3 +53,4 @@ nohup.out
 *.json
 *.npz
 /TNN/forwardDNN_results
+*.pkl
